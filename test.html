@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2x2 Test Sandbox - Pixel Quantum Trace</title>
+  <title>2x2 & 3x3 Test Sandbox - Pixel Quantum Trace</title>
   <style>
     body {
       background: #0f172a;
@@ -16,8 +16,12 @@
       min-height: 100vh;
       margin: 0;
     }
-    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #f8fafc; }
-    p { color: #94a3b8; margin-top: 0; font-size: 0.9rem; }
+    .hud {
+      text-align: center;
+      margin-bottom: 0.75rem;
+    }
+    h1 { font-size: 1.5rem; margin: 0 0 0.25rem 0; color: #f8fafc; }
+    #stage-info { color: #38bdf8; font-weight: 600; font-size: 1rem; margin: 0; }
     canvas {
       border: 2px solid #334155;
       border-radius: 12px;
@@ -26,38 +30,114 @@
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
     }
     #status {
-      margin-top: 1rem;
+      margin-top: 0.75rem;
       font-weight: 700;
       font-size: 1rem;
       color: #94a3b8;
+      height: 1.25rem;
     }
     .win { color: #22c55e !important; text-shadow: 0 0 12px rgba(34, 197, 94, 0.6); }
+
+    #next-btn {
+      margin-top: 1rem;
+      padding: 0.6rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border-radius: 8px;
+      border: none;
+      background: #06b6d4;
+      color: #0f172a;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+    }
+    #next-btn:hover:not(:disabled) {
+      background: #22d3ee;
+      transform: translateY(-1px);
+    }
+    #next-btn:disabled {
+      background: #334155;
+      color: #64748b;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
   </style>
 </head>
 <body>
 
-  <h1>2x2 Sandbox Test</h1>
-  <p>Testing guardrails: No instant wins & First mirror points away</p>
+  <div class="hud">
+    <h1>Pixel Quantum Trace</h1>
+    <div id="stage-info">Stage 1 (2x2 Grid - Variant A)</div>
+  </div>
+
   <canvas id="game" width="240" height="240"></canvas>
   <div id="status">Rotate mirror to hit target</div>
+  <button id="next-btn" disabled>Next Stage ➔</button>
 
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const statusEl = document.getElementById('status');
+    const stageInfoEl = document.getElementById('stage-info');
+    const nextBtn = document.getElementById('next-btn');
 
-    const COLS = 2, ROWS = 2, TILE_SIZE = 120;
-
-    // 0: Empty, 1: '/' mirror, 2: '\' mirror
-    const grid = [
-      [0, 2], 
-      [0, 0]
+    // Stage Configurations
+    const stages = [
+      {
+        name: "Stage 1 (2x2 Grid - Variant A)",
+        cols: 2, rows: 2, tileSize: 120,
+        source: { x: 0, y: 0, dx: 1, dy: 0 }, // Emitter top-left firing RIGHT
+        target: { x: 1, y: 1 },              // Target bottom-right
+        grid: [
+          [0, 2], // Mirror at top-right (1,0)
+          [0, 0]
+        ]
+      },
+      {
+        name: "Stage 2 (2x2 Grid - Variant B)",
+        cols: 2, rows: 2, tileSize: 120,
+        source: { x: 0, y: 0, dx: 0, dy: 1 }, // Emitter top-left firing DOWN
+        target: { x: 1, y: 1 },              // Target bottom-right
+        grid: [
+          [0, 0],
+          [2, 0]  // Mirror at bottom-left (0,1)
+        ]
+      },
+      {
+        name: "Stage 3 (3x3 Grid Upgrade)",
+        cols: 3, rows: 3, tileSize: 80,
+        source: { x: 0, y: 0, dx: 1, dy: 0 }, // Emitter top-left firing RIGHT
+        target: { x: 2, y: 2 },              // Target bottom-right
+        grid: [
+          [0, 0, 2], // Mirror at top-right (2,0)
+          [0, 0, 0],
+          [0, 0, 0]
+        ]
+      }
     ];
 
-    const source = { x: 0, y: 0, dx: 1, dy: 0 }; // Firing RIGHT from (0,0)
-    const target = { x: 1, y: 1 };              // Target at (1,1)
+    let currentStageIdx = 0;
+    let activeConfig = null;
+    let grid = [];
+    let COLS, ROWS, TILE_SIZE, source, target;
 
-    // Check if current board configuration breaks game rules
+    function loadStage(idx) {
+      currentStageIdx = idx;
+      activeConfig = stages[currentStageIdx];
+      COLS = activeConfig.cols;
+      ROWS = activeConfig.rows;
+      TILE_SIZE = activeConfig.tileSize;
+      source = { ...activeConfig.source };
+      target = { ...activeConfig.target };
+      grid = activeConfig.grid.map(row => [...row]);
+
+      stageInfoEl.textContent = activeConfig.name;
+      nextBtn.disabled = true;
+
+      scrambleUntilUnsolved();
+      draw();
+    }
+
     function validateBoardState() {
       let currX = source.x;
       let currY = source.y;
@@ -65,7 +145,7 @@
       let dirY = source.dy;
       let mirrorsHit = 0;
 
-      for (let step = 0; step < 10; step++) {
+      for (let step = 0; step < 15; step++) {
         let nextX = currX + dirX;
         let nextY = currY + dirY;
 
@@ -74,49 +154,33 @@
         currX = nextX;
         currY = nextY;
 
-        // Rule 1 Fail: Laser reaches target on load
-        if (currX === target.x && currY === target.y) {
-          return false;
-        }
+        if (currX === target.x && currY === target.y) return false;
 
         let tile = grid[currY][currX];
         if (tile !== 0) {
           mirrorsHit++;
-
-          // Rule 2 Check: Verify first mirror hit doesn't point to mirror/target
           if (mirrorsHit === 1) {
-            let nextDirX = dirX;
-            let nextDirY = dirY;
-            if (tile === 1) { // '/'
-              let old = nextDirX; nextDirX = -nextDirY; nextDirY = -old;
-            } else if (tile === 2) { // '\'
-              let old = nextDirX; nextDirX = nextDirY; nextDirY = old;
-            }
+            let nextDirX = dirX, nextDirY = dirY;
+            if (tile === 1) { let old = nextDirX; nextDirX = -nextDirY; nextDirY = -old; }
+            else if (tile === 2) { let old = nextDirX; nextDirX = nextDirY; nextDirY = old; }
 
             let lookAheadX = currX + nextDirX;
             let lookAheadY = currY + nextDirY;
 
-            // Fail if first mirror points to another mirror or target
             if (lookAheadX >= 0 && lookAheadX < COLS && lookAheadY >= 0 && lookAheadY < ROWS) {
               let lookAheadTile = grid[lookAheadY][lookAheadX];
               let isTargetAhead = (lookAheadX === target.x && lookAheadY === target.y);
-              if (lookAheadTile !== 0 || isTargetAhead) {
-                return false;
-              }
+              if (lookAheadTile !== 0 || isTargetAhead) return false;
             }
           }
 
-          if (tile === 1) {
-            let oldDx = dirX; dirX = -dirY; dirY = -oldDx;
-          } else if (tile === 2) {
-            let oldDx = dirX; dirX = dirY; dirY = oldDx;
-          }
+          if (tile === 1) { let oldDx = dirX; dirX = -dirY; dirY = -oldDx; }
+          else if (tile === 2) { let oldDx = dirX; dirX = dirY; dirY = oldDx; }
         }
       }
       return true;
     }
 
-    // Auto-randomize/scramble mirrors until valid start conditions are met
     function scrambleUntilUnsolved() {
       let attempts = 0;
       while (!validateBoardState() && attempts < 50) {
@@ -134,7 +198,7 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 1. Grid Lines
+      // Grid Lines
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1;
       for (let r = 0; r <= ROWS; r++) {
@@ -144,7 +208,7 @@
         ctx.beginPath(); ctx.moveTo(c * TILE_SIZE, 0); ctx.lineTo(c * TILE_SIZE, ROWS * TILE_SIZE); ctx.stroke();
       }
 
-      // 2. Trace Laser Ray
+      // Trace Laser Ray
       let path = [];
       let currX = source.x;
       let currY = source.y;
@@ -154,7 +218,7 @@
 
       path.push({ x: (currX + 0.5) * TILE_SIZE, y: (currY + 0.5) * TILE_SIZE });
 
-      for (let step = 0; step < 10; step++) {
+      for (let step = 0; step < 15; step++) {
         let nextX = currX + dirX;
         let nextY = currY + dirY;
 
@@ -180,7 +244,7 @@
         }
       }
 
-      // 3. Render Laser
+      // Render Laser
       ctx.beginPath();
       ctx.strokeStyle = '#ef4444';
       ctx.lineWidth = 6;
@@ -193,16 +257,16 @@
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // 4. Render Emitter
+      // Render Emitter
       ctx.fillStyle = '#38bdf8';
       ctx.beginPath();
-      ctx.arc((source.x + 0.5) * TILE_SIZE, (source.y + 0.5) * TILE_SIZE, 24, 0, Math.PI * 2);
+      ctx.arc((source.x + 0.5) * TILE_SIZE, (source.y + 0.5) * TILE_SIZE, TILE_SIZE * 0.2, 0, Math.PI * 2);
       ctx.fill();
 
-      // 5. Render Target
+      // Render Target
       ctx.fillStyle = isTargetHit ? '#22c55e' : '#475569';
       ctx.beginPath();
-      ctx.arc((target.x + 0.5) * TILE_SIZE, (target.y + 0.5) * TILE_SIZE, 28, 0, Math.PI * 2);
+      ctx.arc((target.x + 0.5) * TILE_SIZE, (target.y + 0.5) * TILE_SIZE, TILE_SIZE * 0.22, 0, Math.PI * 2);
       ctx.fill();
       if (isTargetHit) {
         ctx.strokeStyle = '#86efac';
@@ -210,7 +274,7 @@
         ctx.stroke();
       }
 
-      // 6. Render Mirrors
+      // Render Mirrors
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           let tile = grid[r][c];
@@ -235,12 +299,15 @@
         }
       }
 
+      // Handle Win State and Button Lock
       if (isTargetHit) {
-        statusEl.textContent = 'SIGNAL CONNECTED (2x2 PASSED)';
+        statusEl.textContent = 'SIGNAL CONNECTED!';
         statusEl.className = 'win';
+        nextBtn.disabled = false;
       } else {
-        statusEl.textContent = 'Click mirror to rotate and connect signal';
+        statusEl.textContent = 'Rotate mirror to connect signal';
         statusEl.className = '';
+        nextBtn.disabled = true;
       }
     }
 
@@ -249,15 +316,22 @@
       const x = Math.floor((e.clientX - rect.left) / TILE_SIZE);
       const y = Math.floor((e.clientY - rect.top) / TILE_SIZE);
 
-      if (grid[y][x] !== 0) {
+      if (x >= 0 && x < COLS && y >= 0 && y < ROWS && grid[y][x] !== 0) {
         grid[y][x] = grid[y][x] === 1 ? 2 : 1;
         draw();
       }
     });
 
-    // Run guardrails on load before initial draw
-    scrambleUntilUnsolved();
-    draw();
+    nextBtn.addEventListener('click', () => {
+      if (currentStageIdx < stages.length - 1) {
+        loadStage(currentStageIdx + 1);
+      } else {
+        alert("Reached maximum sandbox test stage!");
+      }
+    });
+
+    // Initial Start
+    loadStage(0);
   </script>
 </body>
 </html>
