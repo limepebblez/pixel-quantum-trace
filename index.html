@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Captain Ozzy Lens: Pixel's Quantum Trace</title>
+  <title>Pixel Quantum Trace</title>
   <style>
     body {
-      background: #090d16;
+      background: #0f172a;
       color: #f8fafc;
       font-family: system-ui, -apple-system, sans-serif;
       display: flex;
@@ -23,23 +23,17 @@
       margin-bottom: 1rem;
     }
     h1 {
-      margin: 0 0 0.25rem 0;
+      margin: 0;
       font-size: 1.75rem;
       letter-spacing: 0.05em;
-      color: #38bdf8;
-      text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
-    }
-    .subtitle {
-      margin: 0;
-      color: #94a3b8;
-      font-size: 0.95rem;
+      color: #f8fafc;
     }
     canvas {
-      border: 2px solid #1e293b;
+      border: 2px solid #334155;
       border-radius: 12px;
       background: #020617;
       cursor: pointer;
-      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.8), 0 0 15px rgba(6, 182, 212, 0.15);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
     }
     #status {
       margin-top: 1.25rem;
@@ -58,42 +52,39 @@
 <body>
 
   <div class="hud">
-    <h1>CAPTAIN OZZY LENS</h1>
-    <p class="subtitle">Pixel's Quantum Trace • Expanded Grid Sector</p>
+    <h1>Pixel Quantum Trace</h1>
   </div>
 
-  <!-- Expanded 8x8 Canvas (8 * 60px = 480px) -->
   <canvas id="game" width="480" height="480"></canvas>
-  <div id="status">Align quantum mirrors to locate Pixel</div>
+  <div id="status">Align quantum mirrors to connect signal</div>
 
   <script>
     const canvas = document.getElementById('game');
     const ctx = canvas.getContext('2d');
     const statusEl = document.getElementById('status');
 
-    // Expanded 8x8 Grid Configuration
     const COLS = 8, ROWS = 8, TILE_SIZE = 60;
 
     // 0: Empty, 1: '/' mirror, 2: '\' mirror
     const grid = [
       [0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 1, 0, 0, 0, 0, 0], // Mirror at (2,1)
-      [0, 0, 0, 0, 1, 0, 0, 0], // Mirror at (4,2)
+      [0, 0, 0, 1, 0, 0, 0, 0], // Mirror at (3,1)
       [0, 0, 0, 0, 0, 0, 0, 0],
-      [0, 0, 0, 0, 0, 0, 1, 0], // Mirror at (6,4)
-      [0, 0, 2, 0, 0, 0, 0, 0], // Mirror at (2,5)
-      [0, 0, 0, 0, 0, 0, 1, 0], // Mirror at (6,6)
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 1, 0, 0, 1, 0], // Mirrors at (3,4) and (6,4)
+      [0, 0, 0, 0, 0, 0, 0, 0],
+      [0, 0, 0, 0, 0, 0, 0, 0], // Target at (6,6)
       [0, 0, 0, 0, 0, 0, 0, 0]
     ];
 
-    const source = { x: 0, y: 1, dx: 1, dy: 0 }; // Captain Ozzy's Laser Emitter at (0,1)
-    const target = { x: 6, y: 6 };              // Target Beacon at (6,6)
+    const source = { x: 0, y: 1, dx: 1, dy: 0 };
+    const target = { x: 6, y: 6 };
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 1. Draw Expanded Grid Overlay
-      ctx.strokeStyle = '#0f172a';
+      // Grid Lines
+      ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1;
       for (let r = 0; r <= ROWS; r++) {
         ctx.beginPath(); ctx.moveTo(0, r * TILE_SIZE); ctx.lineTo(COLS * TILE_SIZE, r * TILE_SIZE); ctx.stroke();
@@ -102,7 +93,7 @@
         ctx.beginPath(); ctx.moveTo(c * TILE_SIZE, 0); ctx.lineTo(c * TILE_SIZE, ROWS * TILE_SIZE); ctx.stroke();
       }
 
-      // 2. Trace Laser Ray Vector across 8x8 Grid
+      // Trace Laser Ray
       let path = [];
       let currX = source.x;
       let currY = source.y;
@@ -116,7 +107,6 @@
         let nextX = currX + dirX;
         let nextY = currY + dirY;
 
-        // Boundary check for expanded grid
         if (nextX < 0 || nextX >= COLS || nextY < 0 || nextY >= ROWS) {
           path.push({ x: (currX + 0.5 + dirX * 0.5) * TILE_SIZE, y: (currY + 0.5 + dirY * 0.5) * TILE_SIZE });
           break;
@@ -126,30 +116,24 @@
         currY = nextY;
         path.push({ x: (currX + 0.5) * TILE_SIZE, y: (currY + 0.5) * TILE_SIZE });
 
-        // Target check
         if (currX === target.x && currY === target.y) {
           isTargetHit = true;
           break;
         }
 
-        // Reflection physics
         let tile = grid[currY][currX];
-        if (tile === 1) { // '/' mirror
-          let oldDx = dirX;
-          dirX = -dirY;
-          dirY = -oldDx;
-        } else if (tile === 2) { // '\' mirror
-          let oldDx = dirX;
-          dirX = dirY;
-          dirY = oldDx;
+        if (tile === 1) {
+          let oldDx = dirX; dirX = -dirY; dirY = -oldDx;
+        } else if (tile === 2) {
+          let oldDx = dirX; dirX = dirY; dirY = oldDx;
         }
       }
 
-      // 3. Render Quantum Laser Beam
+      // Laser Beam
       ctx.beginPath();
-      ctx.strokeStyle = '#38bdf8';
+      ctx.strokeStyle = '#ef4444';
       ctx.lineWidth = 4;
-      ctx.shadowColor = '#38bdf8';
+      ctx.shadowColor = '#ef4444';
       ctx.shadowBlur = 15;
       path.forEach((p, idx) => {
         if (idx === 0) ctx.moveTo(p.x, p.y);
@@ -158,19 +142,16 @@
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // 4. Render Captain Ozzy Emitter Node
-      ctx.fillStyle = '#0284c7';
+      // Emitter Node
+      ctx.fillStyle = '#38bdf8';
       ctx.beginPath();
-      ctx.arc((source.x + 0.5) * TILE_SIZE, (source.y + 0.5) * TILE_SIZE, 16, 0, Math.PI * 2);
+      ctx.arc((source.x + 0.5) * TILE_SIZE, (source.y + 0.5) * TILE_SIZE, 14, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2;
-      ctx.stroke();
 
-      // 5. Render Target Sensor Node
-      ctx.fillStyle = isTargetHit ? '#22c55e' : '#334155';
+      // Target Sensor Node
+      ctx.fillStyle = isTargetHit ? '#22c55e' : '#475569';
       ctx.beginPath();
-      ctx.arc((target.x + 0.5) * TILE_SIZE, (target.y + 0.5) * TILE_SIZE, 18, 0, Math.PI * 2);
+      ctx.arc((target.x + 0.5) * TILE_SIZE, (target.y + 0.5) * TILE_SIZE, 16, 0, Math.PI * 2);
       ctx.fill();
       if (isTargetHit) {
         ctx.strokeStyle = '#86efac';
@@ -178,7 +159,7 @@
         ctx.stroke();
       }
 
-      // 6. Render Mirrors
+      // Mirrors
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           let tile = grid[r][c];
@@ -192,10 +173,10 @@
           ctx.lineWidth = 5;
           ctx.lineCap = 'round';
           ctx.beginPath();
-          if (tile === 1) { // '/'
+          if (tile === 1) {
             ctx.moveTo(cx - offset, cy + offset);
             ctx.lineTo(cx + offset, cy - offset);
-          } else if (tile === 2) { // '\'
+          } else if (tile === 2) {
             ctx.moveTo(cx - offset, cy - offset);
             ctx.lineTo(cx + offset, cy + offset);
           }
@@ -203,17 +184,15 @@
         }
       }
 
-      // Update Victory HUD
       if (isTargetHit) {
-        statusEl.textContent = 'SIGNAL CONNECTED • PIXEL FOUND!';
+        statusEl.textContent = 'SIGNAL CONNECTED';
         statusEl.className = 'win';
       } else {
-        statusEl.textContent = 'Align quantum mirrors to locate Pixel';
+        statusEl.textContent = 'Align quantum mirrors to connect signal';
         statusEl.className = '';
       }
     }
 
-    // Mirror Rotation Interaction
     canvas.addEventListener('click', (e) => {
       const rect = canvas.getBoundingClientRect();
       const x = Math.floor((e.clientX - rect.left) / TILE_SIZE);
