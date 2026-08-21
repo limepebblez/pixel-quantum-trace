@@ -451,6 +451,7 @@ function updateAngles() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // Grid Lines
   ctx.strokeStyle = '#1e293b';
   ctx.lineWidth = 1;
   for (let r = 0; r <= ROWS; r++) {
@@ -460,6 +461,7 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(c * TILE_SIZE, 0); ctx.lineTo(c * TILE_SIZE, ROWS * TILE_SIZE); ctx.stroke();
   }
 
+  // Draw Laser Trajectory
   if (animDistance > 0 && fullPathPoints.length > 1) {
     let remainingDist = animDistance;
     let visiblePath = [fullPathPoints[0]];
@@ -497,15 +499,21 @@ function draw() {
     ctx.shadowBlur = 0;
   }
 
+  // Source Emitter Node with Neon Glow
   let ex = (source.x + 0.5) * TILE_SIZE;
   let ey = (source.y + 0.5) * TILE_SIZE;
   let radius = TILE_SIZE * 0.22;
 
+  ctx.save();
   ctx.fillStyle = '#38bdf8';
+  ctx.shadowColor = '#38bdf8';
+  ctx.shadowBlur = 12;
   ctx.beginPath();
   ctx.arc(ex, ey, radius, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
 
+  // Directional Arrow
   let arrowLen = TILE_SIZE * 0.32;
   let tipX = ex + source.dx * arrowLen;
   let tipY = ey + source.dy * arrowLen;
@@ -528,6 +536,7 @@ function draw() {
   ctx.closePath();
   ctx.fill();
 
+  // Target Node
   ctx.fillStyle = isStageWon ? '#22c55e' : '#475569';
   ctx.beginPath();
   ctx.arc((target.x + 0.5) * TILE_SIZE, (target.y + 0.5) * TILE_SIZE, TILE_SIZE * 0.22, 0, Math.PI * 2);
@@ -538,6 +547,7 @@ function draw() {
     ctx.stroke();
   }
 
+  // Smooth Rotating Mirrors
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       if (grid[r][c] === 0) continue;
@@ -589,13 +599,19 @@ canvas.addEventListener('click', (e) => {
   if (isStageFailed || isStageWon || isLaserAnimating) return;
 
   const rect = canvas.getBoundingClientRect();
-  // Scale touch coordinates proportionally to canvas resolution
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
 
   const x = Math.floor(((e.clientX - rect.left) * scaleX) / TILE_SIZE);
   const y = Math.floor(((e.clientY - rect.top) * scaleY) / TILE_SIZE);
 
+  // 1. Fire laser if player taps the Source Emitter Node
+  if (x === source.x && y === source.y) {
+    fireLaser();
+    return;
+  }
+
+  // 2. Rotate mirror if player taps a Mirror Tile
   if (x >= 0 && x < COLS && y >= 0 && y < ROWS && grid[y][x] !== 0) {
     playRotateSound();
 
