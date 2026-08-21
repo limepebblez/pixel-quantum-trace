@@ -67,11 +67,11 @@
 
   <div class="hud">
     <h1>Pixel Quantum Trace</h1>
-    <div id="stage-info">Stage 1 (2x2 Grid - Variant A)</div>
+    <div id="stage-info">Stage 1 (2x2 Grid - 1 Mirror)</div>
   </div>
 
   <canvas id="game" width="240" height="240"></canvas>
-  <div id="status">Rotate mirror to hit target</div>
+  <div id="status">Rotate mirror to connect signal</div>
   <button id="next-btn" disabled>Next Stage ➔</button>
 
   <script>
@@ -81,37 +81,72 @@
     const stageInfoEl = document.getElementById('stage-info');
     const nextBtn = document.getElementById('next-btn');
 
-    // Stage Configurations
+    // Stage Sequences
     const stages = [
+      // 2x2 Stages
       {
-        name: "Stage 1 (2x2 Grid - Variant A)",
+        name: "Stage 1 (2x2 Grid - 1 Mirror)",
         cols: 2, rows: 2, tileSize: 120,
-        source: { x: 0, y: 0, dx: 1, dy: 0 }, // Emitter top-left firing RIGHT
-        target: { x: 1, y: 1 },              // Target bottom-right
+        source: { x: 0, y: 0, dx: 1, dy: 0 },
+        target: { x: 1, y: 1 },
         grid: [
-          [0, 2], // Mirror at top-right (1,0)
+          [0, 2],
           [0, 0]
         ]
       },
       {
         name: "Stage 2 (2x2 Grid - Variant B)",
         cols: 2, rows: 2, tileSize: 120,
-        source: { x: 0, y: 0, dx: 0, dy: 1 }, // Emitter top-left firing DOWN
-        target: { x: 1, y: 1 },              // Target bottom-right
+        source: { x: 0, y: 0, dx: 0, dy: 1 },
+        target: { x: 1, y: 1 },
         grid: [
           [0, 0],
-          [2, 0]  // Mirror at bottom-left (0,1)
+          [2, 0]
+        ]
+      },
+      // 3x3 Stages
+      {
+        name: "Stage 3 (3x3 Grid - 1 Mirror Warmup)",
+        cols: 3, rows: 3, tileSize: 80,
+        source: { x: 0, y: 0, dx: 1, dy: 0 },
+        target: { x: 2, y: 2 },
+        grid: [
+          [0, 0, 1], // Single corner reflection at (2,0)
+          [0, 0, 0],
+          [0, 0, 0]
         ]
       },
       {
-        name: "Stage 3 (3x3 Grid Upgrade)",
+        name: "Stage 4 (3x3 Grid - 2 Mirrors Z-Path)",
         cols: 3, rows: 3, tileSize: 80,
-        source: { x: 0, y: 0, dx: 1, dy: 0 }, // Emitter top-left firing RIGHT
-        target: { x: 2, y: 2 },              // Target bottom-right
+        source: { x: 0, y: 0, dx: 1, dy: 0 },
+        target: { x: 2, y: 2 },
         grid: [
-          [0, 0, 2], // Mirror at top-right (2,0)
+          [0, 2, 0], // Mirror 1 at (1,0)
           [0, 0, 0],
+          [0, 1, 0]  // Mirror 2 at (1,2)
+        ]
+      },
+      {
+        name: "Stage 5 (3x3 Grid - 3 Mirrors S-Curve)",
+        cols: 3, rows: 3, tileSize: 80,
+        source: { x: 0, y: 0, dx: 1, dy: 0 },
+        target: { x: 2, y: 2 },
+        grid: [
+          [0, 2, 0], // Mirror 1 at (1,0)
+          [0, 2, 1], // Mirror 2 at (1,1), Mirror 3 at (2,1)
           [0, 0, 0]
+        ]
+      },
+      {
+        name: "Stage 6 (3x3 Grid - 4 Mirrors Perimeter Snake)",
+        cols: 3, rows: 3, tileSize: 80,
+        source: { x: 0, y: 0, dx: 1, dy: 0 },
+        target: { x: 2, y: 2 },
+        grid: [
+          [0, 0, 2], // Mirror 1 at (2,0)
+          [1, 0, 1], // Mirror 2 at (0,1), Mirror 3 at (2,1)
+          [2, 0, 0]  // Mirror 4 at (0,2)
         ]
       }
     ];
@@ -145,7 +180,7 @@
       let dirY = source.dy;
       let mirrorsHit = 0;
 
-      for (let step = 0; step < 15; step++) {
+      for (let step = 0; step < 20; step++) {
         let nextX = currX + dirX;
         let nextY = currY + dirY;
 
@@ -198,7 +233,7 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Grid Lines
+      // Grid Overlay
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1;
       for (let r = 0; r <= ROWS; r++) {
@@ -218,7 +253,7 @@
 
       path.push({ x: (currX + 0.5) * TILE_SIZE, y: (currY + 0.5) * TILE_SIZE });
 
-      for (let step = 0; step < 15; step++) {
+      for (let step = 0; step < 20; step++) {
         let nextX = currX + dirX;
         let nextY = currY + dirY;
 
@@ -299,7 +334,7 @@
         }
       }
 
-      // Handle Win State and Button Lock
+      // Win State & Button Control
       if (isTargetHit) {
         statusEl.textContent = 'SIGNAL CONNECTED!';
         statusEl.className = 'win';
@@ -326,11 +361,10 @@
       if (currentStageIdx < stages.length - 1) {
         loadStage(currentStageIdx + 1);
       } else {
-        alert("Reached maximum sandbox test stage!");
+        alert("3x3 Sandbox stages complete!");
       }
     });
 
-    // Initial Start
     loadStage(0);
   </script>
 </body>
