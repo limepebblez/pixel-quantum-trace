@@ -90,6 +90,7 @@
     #restart-btn {
       background: #475569;
       color: #f8fafc;
+      display: none;
     }
     #restart-btn:hover:not(:disabled) { background: #64748b; }
 
@@ -117,7 +118,7 @@
   <div id="status">Plan your mirrors and click Shoot Laser</div>
 
   <div class="bottom-btn-group">
-    <button id="restart-btn">Restart Level ↺</button>
+    <button id="restart-btn">Restart</button>
     <button id="next-btn" disabled>Level 2 ➔</button>
   </div>
 
@@ -408,6 +409,8 @@
 
       fireBtn.disabled = false;
       nextBtn.disabled = true;
+      nextBtn.style.display = 'inline-block';
+      restartBtn.style.display = 'none';
       statusEl.textContent = 'Plan your mirrors and click Shoot Laser';
       statusEl.className = '';
 
@@ -542,7 +545,9 @@
             statusEl.className = 'warn';
           } else {
             isStageFailed = true;
-            statusEl.textContent = 'STAGE FAILED! Board locked. Click Restart Level.';
+            restartBtn.style.display = 'inline-block';
+            nextBtn.style.display = 'none';
+            statusEl.textContent = 'PIXEL TRACING FAILED! Click Restart to try again.';
             statusEl.className = 'fail';
           }
         }
@@ -726,7 +731,7 @@
     });
 
     fireBtn.addEventListener('click', fireLaser);
-    restartBtn.addEventListener('click', () => loadStage(currentStageIdx));
+    restartBtn.addEventListener('click', () => loadStage(0));
     nextBtn.addEventListener('click', () => {
       if (currentStageIdx < stages.length - 1) loadStage(currentStageIdx + 1);
       else alert("All levels complete!");
