@@ -151,12 +151,35 @@
     let currentStageIdx = 0;
     let activeConfig = null;
     let grid = [];
+    let renderAngles = [];
+    let targetAngles = [];
     let COLS, ROWS, TILE_SIZE, source, target;
 
     let attemptsUsed = 0;
     let isLaserActive = false;
     let isStageWon = false;
     let isStageFailed = false;
+    let animFrameId = null;
+
+    function getAngleForTile(tile) {
+      // Tile 1 ('/'): -45deg (-PI/4), Tile 2 ('\'): 45deg (PI/4)
+      return tile === 1 ? -Math.PI / 4 : Math.PI / 4;
+    }
+
+    function initAngles() {
+      renderAngles = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+      targetAngles = Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (grid[r][c] !== 0) {
+            let initialAngle = getAngleForTile(grid[r][c]);
+            renderAngles[r][c] = initialAngle;
+            targetAngles[r][c] = initialAngle;
+          }
+        }
+      }
+    }
 
     function loadStage(idx) {
       currentStageIdx = idx;
@@ -173,10 +196,8 @@
       isStageWon = false;
       isStageFailed = false;
 
-      // Clean HUD display: "Level X"
       stageInfoEl.textContent = `Level ${currentStageIdx + 1}`;
 
-      // Consistent button text: "Level X ➔"
       if (currentStageIdx < stages.length - 1) {
         nextBtn.textContent = `Level ${currentStageIdx + 2} ➔`;
       } else {
@@ -189,7 +210,8 @@
       statusEl.className = '';
 
       scrambleUntilUnsolved();
-      draw();
+      initAngles();
+      startAnimationLoop();
     }
 
     function validateBoardState() {
@@ -279,7 +301,25 @@
         }
       }
 
-      draw();
+      startAnimationLoop();
+    }
+
+    function updateAngles() {
+      let animating = false;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (grid[r][c] !== 0) {
+            let diff = targetAngles[r][c] - renderAngles[r][c];
+            if (Math.abs(diff) > 0.005) {
+              renderAngles[r][c] += diff * 0.25; // Smooth rotation lerp
+              animating = true;
+            } else {
+              renderAngles[r][c] = targetAngles[r][c];
+            }
+          }
+        }
+      }
+      return animating;
     }
 
     function draw() {
@@ -377,30 +417,44 @@
         ctx.stroke();
       }
 
-      // Render Mirrors
+      // Render Animated Smooth Rotating Mirrors
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
-          let tile = grid[r][c];
-          if (tile === 0) continue;
+          if (grid[r][c] === 0) continue;
 
           let cx = (c + 0.5) * TILE_SIZE;
           let cy = (r + 0.5) * TILE_SIZE;
           let offset = TILE_SIZE * 0.28;
+          let currentAngle = renderAngles[r][c];
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(currentAngle);
 
           ctx.strokeStyle = '#06b6d4';
           ctx.lineWidth = 8;
           ctx.lineCap = 'round';
           ctx.beginPath();
-          if (tile === 1) {
-            ctx.moveTo(cx - offset, cy + offset);
-            ctx.lineTo(cx + offset, cy - offset);
-          } else if (tile === 2) {
-            ctx.moveTo(cx - offset, cy - offset);
-            ctx.lineTo(cx + offset, cy + offset);
-          }
+          ctx.moveTo(-offset, 0);
+          ctx.lineTo(offset, 0);
           ctx.stroke();
+
+          ctx.restore();
         }
       }
+    }
+
+    function startAnimationLoop() {
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+
+      function loop() {
+        let isAnimating = updateAngles();
+        draw();
+        if (isAnimating) {
+          animFrameId = requestAnimationFrame(loop);
+        }
+      }
+      loop();
     }
 
     canvas.addEventListener('click', (e) => {
@@ -411,9 +465,12 @@
       const y = Math.floor((e.clientY - rect.top) / TILE_SIZE);
 
       if (x >= 0 && x < COLS && y >= 0 && y < ROWS && grid[y][x] !== 0) {
+        // Toggle mirror state
         grid[y][x] = grid[y][x] === 1 ? 2 : 1;
+        // Smoothly rotate target angle by +90 degrees (PI / 2)
+        targetAngles[y][x] += Math.PI / 2;
         isLaserActive = false;
-        draw();
+        startAnimationLoop();
       }
     });
 
