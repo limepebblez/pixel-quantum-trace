@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Laser Optics MVP</title>
+  <style>
+    body {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    h1 { margin: 0 0 0.25rem 0; font-size: 1.5rem; letter-spacing: 0.05em; }
+    p { margin: 0 0 1rem 0; color: #94a3b8; font-size: 0.9rem; }
+    canvas {
+      border: 2px solid #334155;
+      border-radius: 12px;
+      background: #020617;
+      cursor: pointer;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    #status {
+      margin-top: 1rem;
+      font-weight: 700;
+      height: 1.5rem;
+      font-size: 1.1rem;
+      letter-spacing: 0.05em;
+    }
+    .win { color: #22c55e; text-shadow: 0 0 12px rgba(34, 197, 94, 0.6); }
+  </style>
+</head>
+<body>
+
+  <h1>LASER OPTICS MVP</h1>
+  <p>Click cyan mirrors to rotate them and power the target sensor!</p>
+  <canvas id="game" width="360" height="360"></canvas>
+  <div id="status"></div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+
+    const COLS = 6, ROWS = 6, TILE_SIZE = 60;
+
+    // 0: Empty, 1: '/' mirror, 2: '\' mirror
+    const grid = [
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 1, 0, 0, 0], // Mirror at (2,1)
+      [0, 0, 0, 0, 1, 0], // Mirror at (4,2)
+      [0, 0, 0, 0, 0, 0],
+      [0, 0, 1, 0, 0, 0], // Mirror at (2,4)
+      [0, 0, 0, 0, 0, 0]
+    ];
+
+    const source = { x: 0, y: 1, dx: 1, dy: 0 }; // Blue Source at (0,1) firing RIGHT
+    const target = { x: 4, y: 4 };              // Target at (4,4)
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Draw Grid Lines
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let r = 0; r <= ROWS; r++) {
+        ctx.beginPath(); ctx.moveTo(0, r * TILE_SIZE); ctx.lineTo(COLS * TILE_SIZE, r * TILE_SIZE); ctx.stroke();
+      }
+      for (let c = 0; c <= COLS; c++) {
+        ctx.beginPath(); ctx.moveTo(c * TILE_SIZE, 0); ctx.lineTo(c * TILE_SIZE, ROWS * TILE_SIZE); ctx.stroke();
+      }
+
+      // 2. Trace Laser Ray Simulation
+      let path = [];
+      let currX = source.x;
+      let currY = source.y;
+      let dirX = source.dx;
+      let dirY = source.dy;
+      let isTargetHit = false;
+
+      path.push({ x: (currX + 0.5) * TILE_SIZE, y: (currY + 0.5) * TILE_SIZE });
+
+      for (let step = 0; step < 20; step++) {
+        let nextX = currX + dirX;
+        let nextY = currY + dirY;
+
+        // Boundary check
+        if (nextX < 0 || nextX >= COLS || nextY < 0 || nextY >= ROWS) {
+          path.push({ x: (currX + 0.5 + dirX * 0.5) * TILE_SIZE, y: (currY + 0.5 + dirY * 0.5) * TILE_SIZE });
+          break;
+        }
+
+        currX = nextX;
+        currY = nextY;
+        path.push({ x: (currX + 0.5) * TILE_SIZE, y: (currY + 0.5) * TILE_SIZE });
+
+        // Target check
+        if (currX === target.x && currY === target.y) {
+          isTargetHit = true;
+          break;
+        }
+
+        // Reflection physics logic
+        let tile = grid[currY][currX];
+        if (tile === 1) { // '/' mirror
+          let oldDx = dirX;
+          dirX = -dirY;
+          dirY = -oldDx;
+        } else if (tile === 2) { // '\' mirror
+          let oldDx = dirX;
+          dirX = dirY;
+          dirY = oldDx;
+        }
+      }
+
+      // 3. Render Laser Beam
+      ctx.beginPath();
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = '#ef4444';
+      ctx.shadowBlur = 15;
+      path.forEach((p, idx) => {
+        if (idx === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.stroke();
+      ctx.shadowBlur = 0; // Reset canvas glow state
+
+      // 4. Render Laser Emitter (Source)
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc((source.x + 0.5) * TILE_SIZE, (source.y + 0.5) * TILE_SIZE, 14, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 5. Render Sensor (Target)
+      ctx.fillStyle = isTargetHit ? '#22c55e' : '#475569';
+      ctx.beginPath();
+      ctx.arc((target.x + 0.5) * TILE_SIZE, (target.y + 0.5) * TILE_SIZE, 16, 0, Math.PI * 2);
+      ctx.fill();
+      if (isTargetHit) {
+        ctx.strokeStyle = '#86efac';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      // 6. Render Rotatable Mirrors
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          let tile = grid[r][c];
+          if (tile === 0) continue;
+
+          let cx = (c + 0.5) * TILE_SIZE;
+          let cy = (r + 0.5) * TILE_SIZE;
+          let offset = TILE_SIZE * 0.28;
+
+          ctx.strokeStyle = '#06b6d4';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          if (tile === 1) { // '/'
+            ctx.moveTo(cx - offset, cy + offset);
+            ctx.lineTo(cx + offset, cy - offset);
+          } else if (tile === 2) { // '\'
+            ctx.moveTo(cx - offset, cy - offset);
+            ctx.lineTo(cx + offset, cy + offset);
+          }
+          ctx.stroke();
+        }
+      }
+
+      // Update Victory Text
+      if (isTargetHit) {
+        statusEl.textContent = 'TARGET POWERED! SYSTEM ONLINE';
+        statusEl.className = 'win';
+      } else {
+        statusEl.textContent = 'Target Offline';
+        statusEl.className = '';
+      }
+    }
+
+    // Canvas Click Event: Rotate Mirror
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / TILE_SIZE);
+      const y = Math.floor((e.clientY - rect.top) / TILE_SIZE);
+
+      if (grid[y][x] !== 0) {
+        // Toggle mirror state between '/' (1) and '\' (2)
+        grid[y][x] = grid[y][x] === 1 ? 2 : 1;
+        draw();
+      }
+    });
+
+    draw();
+  </script>
+</body>
+</html>
