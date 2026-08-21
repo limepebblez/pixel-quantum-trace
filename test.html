@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2x2 Test Sandbox - Pixel Quantum Trace</title>
+  <style>
+    body {
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; color: #f8fafc; }
+    p { color: #94a3b8; margin-top: 0; font-size: 0.9rem; }
+    canvas {
+      border: 2px solid #334155;
+      border-radius: 12px;
+      background: #020617;
+      cursor: pointer;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    #status {
+      margin-top: 1rem;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #94a3b8;
+    }
+    .win { color: #22c55e !important; text-shadow: 0 0 12px rgba(34, 197, 94, 0.6); }
+  </style>
+</head>
+<body>
+
+  <h1>2x2 Sandbox Test</h1>
+  <p>Testing guardrails: No instant wins & First mirror points away</p>
+  <canvas id="game" width="240" height="240"></canvas>
+  <div id="status">Rotate mirror to hit target</div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+
+    const COLS = 2, ROWS = 2, TILE_SIZE = 120;
+
+    // 0: Empty, 1: '/' mirror, 2: '\' mirror
+    const grid = [
+      [0, 2], 
+      [0, 0]
+    ];
+
+    const source = { x: 0, y: 0, dx: 1, dy: 0 }; // Firing RIGHT from (0,0)
+    const target = { x: 1, y: 1 };              // Target at (1,1)
+
+    // Check if current board configuration breaks game rules
+    function validateBoardState() {
+      let currX = source.x;
+      let currY = source.y;
+      let dirX = source.dx;
+      let dirY = source.dy;
+      let mirrorsHit = 0;
+
+      for (let step = 0; step < 10; step++) {
+        let nextX = currX + dirX;
+        let nextY = currY + dirY;
+
+        if (nextX < 0 || nextX >= COLS || nextY < 0 || nextY >= ROWS) break;
+
+        currX = nextX;
+        currY = nextY;
+
+        // Rule 1 Fail: Laser reaches target on load
+        if (currX === target.x && currY === target.y) {
+          return false;
+        }
+
+        let tile = grid[currY][currX];
+        if (tile !== 0) {
+          mirrorsHit++;
+
+          // Rule 2 Check: Verify first mirror hit doesn't point to mirror/target
+          if (mirrorsHit === 1) {
+            let nextDirX = dirX;
+            let nextDirY = dirY;
+            if (tile === 1) { // '/'
+              let old = nextDirX; nextDirX = -nextDirY; nextDirY = -old;
+            } else if (tile === 2) { // '\'
+              let old = nextDirX; nextDirX = nextDirY; nextDirY = old;
+            }
+
+            let lookAheadX = currX + nextDirX;
+            let lookAheadY = currY + nextDirY;
+
+            // Fail if first mirror points to another mirror or target
+            if (lookAheadX >= 0 && lookAheadX < COLS && lookAheadY >= 0 && lookAheadY < ROWS) {
+              let lookAheadTile = grid[lookAheadY][lookAheadX];
+              let isTargetAhead = (lookAheadX === target.x && lookAheadY === target.y);
+              if (lookAheadTile !== 0 || isTargetAhead) {
+                return false;
+              }
+            }
+          }
+
+          if (tile === 1) {
+            let oldDx = dirX; dirX = -dirY; dirY = -oldDx;
+          } else if (tile === 2) {
+            let oldDx = dirX; dirX = dirY; dirY = oldDx;
+          }
+        }
+      }
+      return true;
+    }
+
+    // Auto-randomize/scramble mirrors until valid start conditions are met
+    function scrambleUntilUnsolved() {
+      let attempts = 0;
+      while (!validateBoardState() && attempts < 50) {
+        for (let r = 0; r < ROWS; r++) {
+          for (let c = 0; c < COLS; c++) {
+            if (grid[r][c] !== 0) {
+              grid[r][c] = Math.random() < 0.5 ? 1 : 2;
+            }
+          }
+        }
+        attempts++;
+      }
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Grid Lines
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let r = 0; r <= ROWS; r++) {
+        ctx.beginPath(); ctx.moveTo(0, r * TILE_SIZE); ctx.lineTo(COLS * TILE_SIZE, r * TILE_SIZE); ctx.stroke();
+      }
+      for (let c = 0; c <= COLS; c++) {
+        ctx.beginPath(); ctx.moveTo(c * TILE_SIZE, 0); ctx.lineTo(c * TILE_SIZE, ROWS * TILE_SIZE); ctx.stroke();
+      }
+
+      // 2. Trace Laser Ray
+      let path = [];
+      let currX = source.x;
+      let currY = source.y;
+      let dirX = source.dx;
+      let dirY = source.dy;
+      let isTargetHit = false;
+
+      path.push({ x: (currX + 0.5) * TILE_SIZE, y: (currY + 0.5) * TILE_SIZE });
+
+      for (let step = 0; step < 10; step++) {
+        let nextX = currX + dirX;
+        let nextY = currY + dirY;
+
+        if (nextX < 0 || nextX >= COLS || nextY < 0 || nextY >= ROWS) {
+          path.push({ x: (currX + 0.5 + dirX * 0.5) * TILE_SIZE, y: (currY + 0.5 + dirY * 0.5) * TILE_SIZE });
+          break;
+        }
+
+        currX = nextX;
+        currY = nextY;
+        path.push({ x: (currX + 0.5) * TILE_SIZE, y: (currY + 0.5) * TILE_SIZE });
+
+        if (currX === target.x && currY === target.y) {
+          isTargetHit = true;
+          break;
+        }
+
+        let tile = grid[currY][currX];
+        if (tile === 1) {
+          let oldDx = dirX; dirX = -dirY; dirY = -oldDx;
+        } else if (tile === 2) {
+          let oldDx = dirX; dirX = dirY; dirY = oldDx;
+        }
+      }
+
+      // 3. Render Laser
+      ctx.beginPath();
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 6;
+      ctx.shadowColor = '#ef4444';
+      ctx.shadowBlur = 15;
+      path.forEach((p, idx) => {
+        if (idx === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // 4. Render Emitter
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc((source.x + 0.5) * TILE_SIZE, (source.y + 0.5) * TILE_SIZE, 24, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 5. Render Target
+      ctx.fillStyle = isTargetHit ? '#22c55e' : '#475569';
+      ctx.beginPath();
+      ctx.arc((target.x + 0.5) * TILE_SIZE, (target.y + 0.5) * TILE_SIZE, 28, 0, Math.PI * 2);
+      ctx.fill();
+      if (isTargetHit) {
+        ctx.strokeStyle = '#86efac';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      }
+
+      // 6. Render Mirrors
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          let tile = grid[r][c];
+          if (tile === 0) continue;
+
+          let cx = (c + 0.5) * TILE_SIZE;
+          let cy = (r + 0.5) * TILE_SIZE;
+          let offset = TILE_SIZE * 0.28;
+
+          ctx.strokeStyle = '#06b6d4';
+          ctx.lineWidth = 8;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          if (tile === 1) {
+            ctx.moveTo(cx - offset, cy + offset);
+            ctx.lineTo(cx + offset, cy - offset);
+          } else if (tile === 2) {
+            ctx.moveTo(cx - offset, cy - offset);
+            ctx.lineTo(cx + offset, cy + offset);
+          }
+          ctx.stroke();
+        }
+      }
+
+      if (isTargetHit) {
+        statusEl.textContent = 'SIGNAL CONNECTED (2x2 PASSED)';
+        statusEl.className = 'win';
+      } else {
+        statusEl.textContent = 'Click mirror to rotate and connect signal';
+        statusEl.className = '';
+      }
+    }
+
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / TILE_SIZE);
+      const y = Math.floor((e.clientY - rect.top) / TILE_SIZE);
+
+      if (grid[y][x] !== 0) {
+        grid[y][x] = grid[y][x] === 1 ? 2 : 1;
+        draw();
+      }
+    });
+
+    // Run guardrails on load before initial draw
+    scrambleUntilUnsolved();
+    draw();
+  </script>
+</body>
+</html>
