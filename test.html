@@ -15,6 +15,8 @@
       justify-content: center;
       min-height: 100vh;
       margin: 0;
+      padding: 1rem;
+      box-sizing: border-box;
     }
     .hud {
       text-align: center;
@@ -22,13 +24,22 @@
     }
     h1 { font-size: 1.5rem; margin: 0 0 0.25rem 0; color: #f8fafc; }
     #stage-info { color: #38bdf8; font-weight: 600; font-size: 1rem; margin: 0; }
+
+    /* Centered Layout Wrapper */
+    .game-layout {
+      position: relative;
+      display: inline-block;
+    }
+
     canvas {
       border: 2px solid #334155;
       border-radius: 12px;
       background: #020617;
       cursor: pointer;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      display: block;
     }
+
     #status {
       margin-top: 0.75rem;
       font-weight: 700;
@@ -41,7 +52,7 @@
     .fail { color: #ef4444 !important; text-shadow: 0 0 12px rgba(239, 68, 68, 0.6); }
     .warn { color: #f59e0b !important; }
 
-    .btn-group {
+    .bottom-btn-group {
       display: flex;
       gap: 0.75rem;
       margin-top: 1rem;
@@ -57,10 +68,17 @@
       transition: all 0.2s ease;
     }
 
+    /* Positioned absolutely outside the centered canvas boundary */
     #fire-btn {
+      position: absolute;
+      top: 0;
+      left: calc(100% + 12px);
+      padding: 0.45rem 0.75rem;
+      font-size: 0.8rem;
       background: #ef4444;
       color: #ffffff;
       box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+      white-space: nowrap;
     }
     #fire-btn:hover:not(:disabled) { background: #dc2626; transform: translateY(-1px); }
 
@@ -90,16 +108,19 @@
 
   <div class="hud">
     <h1>Pixel Quantum Trace</h1>
-    <div id="stage-info">Stage 1</div>
+    <div id="stage-info">Level 1: 2x2 Grid (1 Mirror)</div>
   </div>
 
-  <canvas id="game" width="240" height="240"></canvas>
-  <div id="status">Plan your mirror angles and click Shoot Laser</div>
-
-  <div class="btn-group">
+  <div class="game-layout">
+    <canvas id="game" width="240" height="240"></canvas>
     <button id="fire-btn">Shoot Laser ⚡</button>
+  </div>
+
+  <div id="status">Plan your mirrors and click Shoot Laser</div>
+
+  <div class="bottom-btn-group">
     <button id="restart-btn">Restart Level ↺</button>
-    <button id="next-btn" disabled>Next Stage ➔</button>
+    <button id="next-btn" disabled>Stage 2 ➔</button>
   </div>
 
   <script>
@@ -113,20 +134,20 @@
 
     const stages = [
       // 2x2 Stages
-      { name: "Stage 1 (2x2 Grid - 1 Mirror)", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 1, y: 1 }, grid: [[0, 2], [0, 0]] },
-      { name: "Stage 2 (2x2 Grid - Variant B)", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 0, dy: 1 }, target: { x: 1, y: 1 }, grid: [[0, 0], [2, 0]] },
+      { name: "Level 1: 2x2 Grid (1 Mirror)", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 1, y: 1 }, grid: [[0, 2], [0, 0]] },
+      { name: "Level 2: 2x2 Grid (Variant B)", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 0, dy: 1 }, target: { x: 1, y: 1 }, grid: [[0, 0], [2, 0]] },
       // 3x3 Stages
-      { name: "Stage 3 (3x3 Grid - 1 Mirror)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 1], [0, 0, 0], [0, 0, 0]] },
-      { name: "Stage 4 (3x3 Grid - 2 Mirrors)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 0, 0], [0, 1, 0]] },
-      { name: "Stage 5 (3x3 Grid - 3 Mirrors)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 2, 1], [0, 0, 0]] },
-      { name: "Stage 6 (3x3 Grid - 4 Mirrors)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 2], [1, 0, 1], [2, 0, 0]] },
+      { name: "Level 3: 3x3 Grid (1 Mirror)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 1], [0, 0, 0], [0, 0, 0]] },
+      { name: "Level 4: 3x3 Grid (2 Mirrors)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 0, 0], [0, 1, 0]] },
+      { name: "Level 5: 3x3 Grid (3 Mirrors)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 2, 1], [0, 0, 0]] },
+      { name: "Level 6: 3x3 Grid (4 Mirrors)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 2], [1, 0, 1], [2, 0, 0]] },
       // 4x4 Stages
-      { name: "Stage 7 (4x4 Grid - 1 Mirror)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] },
-      { name: "Stage 8 (4x4 Grid - 2 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]] },
-      { name: "Stage 9 (4x4 Grid - 3 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [0, 0, 0, 0], [0, 1, 0, 2], [0, 0, 0, 0]] },
-      { name: "Stage 10 (4x4 Grid - 4 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [1, 2, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0]] },
-      { name: "Stage 11 (4x4 Grid - 5 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [1, 0, 2, 0], [1, 0, 0, 2], [0, 0, 0, 0]] },
-      { name: "Stage 12 (4x4 Grid - 6 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
+      { name: "Level 7: 4x4 Grid (1 Mirror)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] },
+      { name: "Level 8: 4x4 Grid (2 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]] },
+      { name: "Level 9: 4x4 Grid (3 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [0, 0, 0, 0], [0, 1, 0, 2], [0, 0, 0, 0]] },
+      { name: "Level 10: 4x4 Grid (4 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [1, 2, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0]] },
+      { name: "Level 11: 4x4 Grid (5 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [1, 0, 2, 0], [1, 0, 0, 2], [0, 0, 0, 0]] },
+      { name: "Level 12: 4x4 Grid (6 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
     ];
 
     let currentStageIdx = 0;
@@ -134,7 +155,6 @@
     let grid = [];
     let COLS, ROWS, TILE_SIZE, source, target;
 
-    // Game Flow States
     let attemptsUsed = 0;
     let isLaserActive = false;
     let isStageWon = false;
@@ -156,6 +176,13 @@
       isStageFailed = false;
 
       stageInfoEl.textContent = activeConfig.name;
+
+      if (currentStageIdx < stages.length - 1) {
+        nextBtn.textContent = `Stage ${currentStageIdx + 2} ➔`;
+      } else {
+        nextBtn.textContent = `All Levels Done ➔`;
+      }
+
       fireBtn.disabled = false;
       nextBtn.disabled = true;
       statusEl.textContent = 'Plan your mirrors and click Shoot Laser';
@@ -215,7 +242,6 @@
       attemptsUsed++;
       isLaserActive = true;
 
-      // Check hit/miss path
       let currX = source.x, currY = source.y;
       let dirX = source.dx, dirY = source.dy;
       let isHit = false;
@@ -243,7 +269,7 @@
         statusEl.className = 'win';
       } else {
         if (attemptsUsed === 1) {
-          statusEl.textContent = 'SHOT 1 MISSED! Take your time to adjust mirrors (1 attempt left)';
+          statusEl.textContent = 'MISSED! 1 ATTEMPT LEFT!';
           statusEl.className = 'warn';
         } else {
           isStageFailed = true;
@@ -259,7 +285,7 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Grid Lines
+      // Grid Overlay
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1;
       for (let r = 0; r <= ROWS; r++) {
@@ -269,7 +295,7 @@
         ctx.beginPath(); ctx.moveTo(c * TILE_SIZE, 0); ctx.lineTo(c * TILE_SIZE, ROWS * TILE_SIZE); ctx.stroke();
       }
 
-      // Trace Laser Ray (Only when active)
+      // Trace Laser Beam (When Active)
       if (isLaserActive) {
         let path = [];
         let currX = source.x, currY = source.y;
@@ -308,13 +334,39 @@
         ctx.shadowBlur = 0;
       }
 
-      // Render Emitter
+      // Render Emitter Node & Directional Nozzle
+      let ex = (source.x + 0.5) * TILE_SIZE;
+      let ey = (source.y + 0.5) * TILE_SIZE;
+      let radius = TILE_SIZE * 0.22;
+
       ctx.fillStyle = '#38bdf8';
       ctx.beginPath();
-      ctx.arc((source.x + 0.5) * TILE_SIZE, (source.y + 0.5) * TILE_SIZE, TILE_SIZE * 0.2, 0, Math.PI * 2);
+      ctx.arc(ex, ey, radius, 0, Math.PI * 2);
       ctx.fill();
 
-      // Render Target
+      let arrowLen = TILE_SIZE * 0.32;
+      let tipX = ex + source.dx * arrowLen;
+      let tipY = ey + source.dy * arrowLen;
+      let angle = Math.atan2(source.dy, source.dx);
+      let headLen = TILE_SIZE * 0.1;
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.fillStyle = '#ffffff';
+      ctx.lineWidth = 3;
+
+      ctx.beginPath();
+      ctx.moveTo(ex, ey);
+      ctx.lineTo(tipX, tipY);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(tipX, tipY);
+      ctx.lineTo(tipX - headLen * Math.cos(angle - Math.PI / 6), tipY - headLen * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(tipX - headLen * Math.cos(angle + Math.PI / 6), tipY - headLen * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+
+      // Render Target Sensor Node
       ctx.fillStyle = isStageWon ? '#22c55e' : '#475569';
       ctx.beginPath();
       ctx.arc((target.x + 0.5) * TILE_SIZE, (target.y + 0.5) * TILE_SIZE, TILE_SIZE * 0.22, 0, Math.PI * 2);
@@ -352,7 +404,6 @@
     }
 
     canvas.addEventListener('click', (e) => {
-      // Prevent mirror manipulation if level failed or won
       if (isStageFailed || isStageWon) return;
 
       const rect = canvas.getBoundingClientRect();
@@ -361,7 +412,6 @@
 
       if (x >= 0 && x < COLS && y >= 0 && y < ROWS && grid[y][x] !== 0) {
         grid[y][x] = grid[y][x] === 1 ? 2 : 1;
-        // Turn off beam while adjusting so player can re-plan
         isLaserActive = false;
         draw();
       }
