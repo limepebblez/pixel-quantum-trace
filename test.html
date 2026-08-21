@@ -131,49 +131,49 @@
     const nextBtn = document.getElementById('next-btn');
 
     let audioCtx = null;
+    let humNodes = null;
 
-    // Futuristic space-like quantum swoosh synthesizer
-    function playRotateSound() {
+    function getAudioContext() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
       if (audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
+      return audioCtx;
+    }
 
-      const now = audioCtx.currentTime;
-      const duration = 0.28; // 280ms cosmic tail
+    function playRotateSound() {
+      const ac = getAudioContext();
+      const now = ac.currentTime;
+      const duration = 0.28;
 
-      // 1. Resonant Filtered Cosmic Noise (Air/Void Space Swoosh)
-      const bufferSize = audioCtx.sampleRate * duration;
-      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const bufferSize = ac.sampleRate * duration;
+      const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
       const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = Math.random() * 2 - 1;
-      }
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
 
-      const noise = audioCtx.createBufferSource();
+      const noise = ac.createBufferSource();
       noise.buffer = buffer;
 
-      const filter = audioCtx.createBiquadFilter();
+      const filter = ac.createBiquadFilter();
       filter.type = 'bandpass';
-      filter.Q.value = 6.5; // High Q gives a metallic sci-fi resonance
+      filter.Q.value = 6.5;
       filter.frequency.setValueAtTime(200, now);
       filter.frequency.exponentialRampToValueAtTime(3200, now + duration * 0.4);
       filter.frequency.exponentialRampToValueAtTime(150, now + duration);
 
-      const noiseGain = audioCtx.createGain();
+      const noiseGain = ac.createGain();
       noiseGain.gain.setValueAtTime(0.001, now);
       noiseGain.gain.exponentialRampToValueAtTime(0.3, now + duration * 0.35);
       noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
       noise.connect(filter);
       filter.connect(noiseGain);
-      noiseGain.connect(audioCtx.destination);
+      noiseGain.connect(ac.destination);
 
-      // 2. High Sci-Fi Plasma Sweep
-      const sciFiOsc = audioCtx.createOscillator();
-      const sciFiGain = audioCtx.createGain();
+      const sciFiOsc = ac.createOscillator();
+      const sciFiGain = ac.createGain();
       sciFiOsc.type = 'sine';
       sciFiOsc.frequency.setValueAtTime(1400, now);
       sciFiOsc.frequency.exponentialRampToValueAtTime(300, now + duration);
@@ -183,11 +183,10 @@
       sciFiGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
       sciFiOsc.connect(sciFiGain);
-      sciFiGain.connect(audioCtx.destination);
+      sciFiGain.connect(ac.destination);
 
-      // 3. Deep Cosmic Sub-Bass Pulse
-      const subOsc = audioCtx.createOscillator();
-      const subGain = audioCtx.createGain();
+      const subOsc = ac.createOscillator();
+      const subGain = ac.createGain();
       subOsc.type = 'sine';
       subOsc.frequency.setValueAtTime(80, now);
       subOsc.frequency.exponentialRampToValueAtTime(220, now + duration * 0.35);
@@ -198,15 +197,127 @@
       subGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
       subOsc.connect(subGain);
-      subGain.connect(audioCtx.destination);
+      subGain.connect(ac.destination);
+
+      noise.start(now); sciFiOsc.start(now); subOsc.start(now);
+      noise.stop(now + duration); sciFiOsc.stop(now + duration); subOsc.stop(now + duration);
+    }
+
+    function startLaserHumSound() {
+      if (humNodes) stopLaserHumSound();
+      const ac = getAudioContext();
+      const now = ac.currentTime;
+
+      const osc = ac.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(90, now);
+
+      const filter = ac.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(220, now);
+
+      const mainGain = ac.createGain();
+      mainGain.gain.setValueAtTime(0.05, now);
+      mainGain.gain.linearRampToValueAtTime(0.18, now + 0.1);
+
+      const lfo = ac.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.setValueAtTime(6.5, now);
+
+      const lfoGain = ac.createGain();
+      lfoGain.gain.setValueAtTime(0.08, now);
+
+      lfo.connect(lfoGain);
+      lfoGain.connect(mainGain.gain);
+
+      osc.connect(filter);
+      filter.connect(mainGain);
+      mainGain.connect(ac.destination);
+
+      osc.start(now);
+      lfo.start(now);
+
+      humNodes = { osc, lfo, mainGain, ac };
+    }
+
+    function stopLaserHumSound() {
+      if (!humNodes) return;
+      const { osc, lfo, mainGain, ac } = humNodes;
+      const now = ac.currentTime;
+      mainGain.gain.linearRampToValueAtTime(0.001, now + 0.08);
+      setTimeout(() => {
+        try { osc.stop(); lfo.stop(); } catch(e){}
+      }, 100);
+      humNodes = null;
+    }
+
+    function playTargetHitSound() {
+      const ac = getAudioContext();
+      const now = ac.currentTime;
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+
+      notes.forEach((freq, idx) => {
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        const noteTime = now + idx * 0.06;
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, noteTime);
+
+        gain.gain.setValueAtTime(0.001, noteTime);
+        gain.gain.exponentialRampToValueAtTime(0.2, noteTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.35);
+
+        osc.connect(gain);
+        gain.connect(ac.destination);
+
+        osc.start(noteTime);
+        osc.stop(noteTime + 0.35);
+      });
+    }
+
+    function playMishitSound() {
+      const ac = getAudioContext();
+      const now = ac.currentTime;
+      const duration = 0.35;
+
+      const bufferSize = ac.sampleRate * duration;
+      const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+      const noise = ac.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = ac.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(2400, now);
+      filter.frequency.exponentialRampToValueAtTime(120, now + duration);
+
+      const noiseGain = ac.createGain();
+      noiseGain.gain.setValueAtTime(0.3, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(ac.destination);
+
+      const osc = ac.createOscillator();
+      const oscGain = ac.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + duration);
+
+      oscGain.gain.setValueAtTime(0.2, now);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      osc.connect(oscGain);
+      oscGain.connect(ac.destination);
 
       noise.start(now);
-      sciFiOsc.start(now);
-      subOsc.start(now);
-
+      osc.start(now);
       noise.stop(now + duration);
-      sciFiOsc.stop(now + duration);
-      subOsc.stop(now + duration);
+      osc.stop(now + duration);
     }
 
     const stages = [
@@ -235,10 +346,18 @@
     let COLS, ROWS, TILE_SIZE, source, target;
 
     let attemptsUsed = 0;
-    let isLaserActive = false;
     let isStageWon = false;
     let isStageFailed = false;
+
+    // Beam Ray Animation Control States
+    let fullPathPoints = [];
+    let animDistance = 0;
+    let totalPathLength = 0;
+    let isLaserAnimating = false;
+    let targetHitOnCurrentShot = false;
+
     let animFrameId = null;
+    let lastTimestamp = 0;
 
     function getAngleForTile(tile) {
       return tile === 1 ? -Math.PI / 4 : Math.PI / 4;
@@ -270,9 +389,16 @@
       grid = activeConfig.grid.map(row => [...row]);
 
       attemptsUsed = 0;
-      isLaserActive = false;
       isStageWon = false;
       isStageFailed = false;
+
+      // Clear previous stage laser beam trajectory & animation states
+      animDistance = 0;
+      totalPathLength = 0;
+      fullPathPoints = [];
+      targetHitOnCurrentShot = false;
+      isLaserAnimating = false;
+      stopLaserHumSound();
 
       stageInfoEl.textContent = `Level ${currentStageIdx + 1}`;
 
@@ -336,20 +462,24 @@
       }
     }
 
-    function fireLaser() {
-      if (isStageWon || isStageFailed) return;
-
-      attemptsUsed++;
-      isLaserActive = true;
-
+    function computeLaserTrajectory() {
+      let points = [];
       let currX = source.x, currY = source.y;
       let dirX = source.dx, dirY = source.dy;
       let isHit = false;
 
+      points.push({ x: (currX + 0.5) * TILE_SIZE, y: (currY + 0.5) * TILE_SIZE });
+
       for (let step = 0; step < 25; step++) {
         let nextX = currX + dirX, nextY = currY + dirY;
-        if (nextX < 0 || nextX >= COLS || nextY < 0 || nextY >= ROWS) break;
+
+        if (nextX < 0 || nextX >= COLS || nextY < 0 || nextY >= ROWS) {
+          points.push({ x: (currX + 0.5 + dirX * 0.5) * TILE_SIZE, y: (currY + 0.5 + dirY * 0.5) * TILE_SIZE });
+          break;
+        }
+
         currX = nextX; currY = nextY;
+        points.push({ x: (currX + 0.5) * TILE_SIZE, y: (currY + 0.5) * TILE_SIZE });
 
         if (currX === target.x && currY === target.y) {
           isHit = true;
@@ -361,25 +491,65 @@
         else if (tile === 2) { let oldDx = dirX; dirX = dirY; dirY = oldDx; }
       }
 
-      if (isHit) {
-        isStageWon = true;
-        fireBtn.disabled = true;
-        nextBtn.disabled = false;
-        statusEl.textContent = 'SIGNAL CONNECTED!';
-        statusEl.className = 'win';
-      } else {
-        if (attemptsUsed === 1) {
-          statusEl.textContent = 'MISSED! 1 ATTEMPT LEFT!';
-          statusEl.className = 'warn';
-        } else {
-          isStageFailed = true;
-          fireBtn.disabled = true;
-          statusEl.textContent = 'STAGE FAILED! Board locked. Click Restart Level.';
-          statusEl.className = 'fail';
-        }
+      let totalDist = 0;
+      for (let i = 0; i < points.length - 1; i++) {
+        let dx = points[i+1].x - points[i].x;
+        let dy = points[i+1].y - points[i].y;
+        totalDist += Math.sqrt(dx * dx + dy * dy);
       }
 
+      return { points, totalDist, isHit };
+    }
+
+    function fireLaser() {
+      if (isStageWon || isStageFailed || isLaserAnimating) return;
+
+      attemptsUsed++;
+      const res = computeLaserTrajectory();
+      fullPathPoints = res.points;
+      totalPathLength = res.totalDist;
+      targetHitOnCurrentShot = res.isHit;
+
+      animDistance = 0;
+      isLaserAnimating = true;
+      fireBtn.disabled = true;
+
+      startLaserHumSound();
       startAnimationLoop();
+    }
+
+    function updateLaserAnimation(dt) {
+      if (!isLaserAnimating) return false;
+
+      const speed = 480;
+      animDistance += speed * dt;
+
+      if (animDistance >= totalPathLength) {
+        animDistance = totalPathLength;
+        isLaserAnimating = false;
+
+        stopLaserHumSound();
+
+        if (targetHitOnCurrentShot) {
+          isStageWon = true;
+          nextBtn.disabled = false;
+          statusEl.textContent = 'SIGNAL CONNECTED!';
+          statusEl.className = 'win';
+          playTargetHitSound();
+        } else {
+          playMishitSound();
+          if (attemptsUsed === 1) {
+            fireBtn.disabled = false;
+            statusEl.textContent = 'MISSED! 1 ATTEMPT LEFT!';
+            statusEl.className = 'warn';
+          } else {
+            isStageFailed = true;
+            statusEl.textContent = 'STAGE FAILED! Board locked. Click Restart Level.';
+            statusEl.className = 'fail';
+          }
+        }
+      }
+      return true;
     }
 
     function updateAngles() {
@@ -403,7 +573,6 @@
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Grid Overlay
       ctx.strokeStyle = '#1e293b';
       ctx.lineWidth = 1;
       for (let r = 0; r <= ROWS; r++) {
@@ -413,30 +582,28 @@
         ctx.beginPath(); ctx.moveTo(c * TILE_SIZE, 0); ctx.lineTo(c * TILE_SIZE, ROWS * TILE_SIZE); ctx.stroke();
       }
 
-      // Trace Laser Beam
-      if (isLaserActive) {
-        let path = [];
-        let currX = source.x, currY = source.y;
-        let dirX = source.dx, dirY = source.dy;
+      if (animDistance > 0 && fullPathPoints.length > 1) {
+        let remainingDist = animDistance;
+        let visiblePath = [fullPathPoints[0]];
 
-        path.push({ x: (currX + 0.5) * TILE_SIZE, y: (currY + 0.5) * TILE_SIZE });
+        for (let i = 0; i < fullPathPoints.length - 1; i++) {
+          let p1 = fullPathPoints[i];
+          let p2 = fullPathPoints[i+1];
+          let segDx = p2.x - p1.x;
+          let segDy = p2.y - p1.y;
+          let segLen = Math.sqrt(segDx * segDx + segDy * segDy);
 
-        for (let step = 0; step < 25; step++) {
-          let nextX = currX + dirX, nextY = currY + dirY;
-
-          if (nextX < 0 || nextX >= COLS || nextY < 0 || nextY >= ROWS) {
-            path.push({ x: (currX + 0.5 + dirX * 0.5) * TILE_SIZE, y: (currY + 0.5 + dirY * 0.5) * TILE_SIZE });
+          if (remainingDist >= segLen) {
+            visiblePath.push(p2);
+            remainingDist -= segLen;
+          } else {
+            let ratio = remainingDist / segLen;
+            visiblePath.push({
+              x: p1.x + segDx * ratio,
+              y: p1.y + segDy * ratio
+            });
             break;
           }
-
-          currX = nextX; currY = nextY;
-          path.push({ x: (currX + 0.5) * TILE_SIZE, y: (currY + 0.5) * TILE_SIZE });
-
-          if (currX === target.x && currY === target.y) break;
-
-          let tile = grid[currY][currX];
-          if (tile === 1) { let oldDx = dirX; dirX = -dirY; dirY = -oldDx; }
-          else if (tile === 2) { let oldDx = dirX; dirX = dirY; dirY = oldDx; }
         }
 
         ctx.beginPath();
@@ -444,7 +611,7 @@
         ctx.lineWidth = 6;
         ctx.shadowColor = '#ef4444';
         ctx.shadowBlur = 15;
-        path.forEach((p, idx) => {
+        visiblePath.forEach((p, idx) => {
           if (idx === 0) ctx.moveTo(p.x, p.y);
           else ctx.lineTo(p.x, p.y);
         });
@@ -452,7 +619,6 @@
         ctx.shadowBlur = 0;
       }
 
-      // Render Emitter Node & Arrow
       let ex = (source.x + 0.5) * TILE_SIZE;
       let ey = (source.y + 0.5) * TILE_SIZE;
       let radius = TILE_SIZE * 0.22;
@@ -484,7 +650,6 @@
       ctx.closePath();
       ctx.fill();
 
-      // Render Target Sensor Node
       ctx.fillStyle = isStageWon ? '#22c55e' : '#475569';
       ctx.beginPath();
       ctx.arc((target.x + 0.5) * TILE_SIZE, (target.y + 0.5) * TILE_SIZE, TILE_SIZE * 0.22, 0, Math.PI * 2);
@@ -495,7 +660,6 @@
         ctx.stroke();
       }
 
-      // Render Animated Smooth Rotating Mirrors
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           if (grid[r][c] === 0) continue;
@@ -524,19 +688,27 @@
 
     function startAnimationLoop() {
       if (animFrameId) cancelAnimationFrame(animFrameId);
+      lastTimestamp = performance.now();
 
-      function loop() {
-        let isAnimating = updateAngles();
+      function loop(now) {
+        let dt = (now - lastTimestamp) / 1000;
+        lastTimestamp = now;
+        if (dt > 0.1) dt = 0.1;
+
+        let isAnglesAnimating = updateAngles();
+        let isLaserStillAnimating = updateLaserAnimation(dt);
+
         draw();
-        if (isAnimating) {
+
+        if (isAnglesAnimating || isLaserStillAnimating) {
           animFrameId = requestAnimationFrame(loop);
         }
       }
-      loop();
+      animFrameId = requestAnimationFrame(loop);
     }
 
     canvas.addEventListener('click', (e) => {
-      if (isStageFailed || isStageWon) return;
+      if (isStageFailed || isStageWon || isLaserAnimating) return;
 
       const rect = canvas.getBoundingClientRect();
       const x = Math.floor((e.clientX - rect.left) / TILE_SIZE);
@@ -547,7 +719,10 @@
 
         grid[y][x] = grid[y][x] === 1 ? 2 : 1;
         targetAngles[y][x] += Math.PI / 2;
-        isLaserActive = false;
+
+        animDistance = 0;
+        stopLaserHumSound();
+
         startAnimationLoop();
       }
     });
