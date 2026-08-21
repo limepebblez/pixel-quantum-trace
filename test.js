@@ -589,8 +589,12 @@ canvas.addEventListener('click', (e) => {
   if (isStageFailed || isStageWon || isLaserAnimating) return;
 
   const rect = canvas.getBoundingClientRect();
-  const x = Math.floor((e.clientX - rect.left) / TILE_SIZE);
-  const y = Math.floor((e.clientY - rect.top) / TILE_SIZE);
+  // Scale touch coordinates proportionally to canvas resolution
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+
+  const x = Math.floor(((e.clientX - rect.left) * scaleX) / TILE_SIZE);
+  const y = Math.floor(((e.clientY - rect.top) * scaleY) / TILE_SIZE);
 
   if (x >= 0 && x < COLS && y >= 0 && y < ROWS && grid[y][x] !== 0) {
     playRotateSound();
