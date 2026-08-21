@@ -589,10 +589,12 @@ canvas.addEventListener('click', (e) => {
   if (isStageFailed || isStageWon || isLaserAnimating) return;
 
   const rect = canvas.getBoundingClientRect();
-  // Scale touch coordinates proportionally to canvas resolution
+  
+  // Calculate scaling factor between display size and internal canvas resolution
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
 
+  // Convert click coordinates to match canvas pixel grid
   const x = Math.floor(((e.clientX - rect.left) * scaleX) / TILE_SIZE);
   const y = Math.floor(((e.clientY - rect.top) * scaleY) / TILE_SIZE);
 
