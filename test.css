@@ -39,6 +39,11 @@ canvas {
   max-height: 85vw;
   width: auto;
   height: auto;
+  /* Removes mobile touch blue flash & selection bounds */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  outline: none;
 }
 
 #status {
