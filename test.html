@@ -25,7 +25,6 @@
     h1 { font-size: 1.5rem; margin: 0 0 0.25rem 0; color: #f8fafc; }
     #stage-info { color: #38bdf8; font-weight: 600; font-size: 1rem; margin: 0; }
 
-    /* Centered Layout Wrapper */
     .game-layout {
       position: relative;
       display: inline-block;
@@ -68,7 +67,6 @@
       transition: all 0.2s ease;
     }
 
-    /* Positioned absolutely outside the centered canvas boundary */
     #fire-btn {
       position: absolute;
       top: 0;
@@ -108,7 +106,7 @@
 
   <div class="hud">
     <h1>Pixel Quantum Trace</h1>
-    <div id="stage-info">Level 1: 2x2 Grid (1 Mirror)</div>
+    <div id="stage-info">Level 1</div>
   </div>
 
   <div class="game-layout">
@@ -120,7 +118,7 @@
 
   <div class="bottom-btn-group">
     <button id="restart-btn">Restart Level ↺</button>
-    <button id="next-btn" disabled>Stage 2 ➔</button>
+    <button id="next-btn" disabled>Level 2 ➔</button>
   </div>
 
   <script>
@@ -134,20 +132,20 @@
 
     const stages = [
       // 2x2 Stages
-      { name: "Level 1: 2x2 Grid (1 Mirror)", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 1, y: 1 }, grid: [[0, 2], [0, 0]] },
-      { name: "Level 2: 2x2 Grid (Variant B)", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 0, dy: 1 }, target: { x: 1, y: 1 }, grid: [[0, 0], [2, 0]] },
+      { cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 1, y: 1 }, grid: [[0, 2], [0, 0]] },
+      { cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 0, dy: 1 }, target: { x: 1, y: 1 }, grid: [[0, 0], [2, 0]] },
       // 3x3 Stages
-      { name: "Level 3: 3x3 Grid (1 Mirror)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 1], [0, 0, 0], [0, 0, 0]] },
-      { name: "Level 4: 3x3 Grid (2 Mirrors)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 0, 0], [0, 1, 0]] },
-      { name: "Level 5: 3x3 Grid (3 Mirrors)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 2, 1], [0, 0, 0]] },
-      { name: "Level 6: 3x3 Grid (4 Mirrors)", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 2], [1, 0, 1], [2, 0, 0]] },
+      { cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 1], [0, 0, 0], [0, 0, 0]] },
+      { cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 0, 0], [0, 1, 0]] },
+      { cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 2, 1], [0, 0, 0]] },
+      { cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 2], [1, 0, 1], [2, 0, 0]] },
       // 4x4 Stages
-      { name: "Level 7: 4x4 Grid (1 Mirror)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] },
-      { name: "Level 8: 4x4 Grid (2 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]] },
-      { name: "Level 9: 4x4 Grid (3 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [0, 0, 0, 0], [0, 1, 0, 2], [0, 0, 0, 0]] },
-      { name: "Level 10: 4x4 Grid (4 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [1, 2, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0]] },
-      { name: "Level 11: 4x4 Grid (5 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [1, 0, 2, 0], [1, 0, 0, 2], [0, 0, 0, 0]] },
-      { name: "Level 12: 4x4 Grid (6 Mirrors)", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
+      { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] },
+      { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]] },
+      { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [0, 0, 0, 0], [0, 1, 0, 2], [0, 0, 0, 0]] },
+      { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [1, 2, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0]] },
+      { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [1, 0, 2, 0], [1, 0, 0, 2], [0, 0, 0, 0]] },
+      { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
     ];
 
     let currentStageIdx = 0;
@@ -175,10 +173,12 @@
       isStageWon = false;
       isStageFailed = false;
 
-      stageInfoEl.textContent = activeConfig.name;
+      // Clean HUD display: "Level X"
+      stageInfoEl.textContent = `Level ${currentStageIdx + 1}`;
 
+      // Consistent button text: "Level X ➔"
       if (currentStageIdx < stages.length - 1) {
-        nextBtn.textContent = `Stage ${currentStageIdx + 2} ➔`;
+        nextBtn.textContent = `Level ${currentStageIdx + 2} ➔`;
       } else {
         nextBtn.textContent = `All Levels Done ➔`;
       }
@@ -265,7 +265,7 @@
         isStageWon = true;
         fireBtn.disabled = true;
         nextBtn.disabled = false;
-        statusEl.textContent = 'SIGNAL CONNECTED! STAGE WON!';
+        statusEl.textContent = 'SIGNAL CONNECTED!';
         statusEl.className = 'win';
       } else {
         if (attemptsUsed === 1) {
@@ -295,7 +295,7 @@
         ctx.beginPath(); ctx.moveTo(c * TILE_SIZE, 0); ctx.lineTo(c * TILE_SIZE, ROWS * TILE_SIZE); ctx.stroke();
       }
 
-      // Trace Laser Beam (When Active)
+      // Trace Laser Beam
       if (isLaserActive) {
         let path = [];
         let currX = source.x, currY = source.y;
@@ -334,7 +334,7 @@
         ctx.shadowBlur = 0;
       }
 
-      // Render Emitter Node & Directional Nozzle
+      // Render Emitter Node & Arrow
       let ex = (source.x + 0.5) * TILE_SIZE;
       let ey = (source.y + 0.5) * TILE_SIZE;
       let radius = TILE_SIZE * 0.22;
@@ -421,7 +421,7 @@
     restartBtn.addEventListener('click', () => loadStage(currentStageIdx));
     nextBtn.addEventListener('click', () => {
       if (currentStageIdx < stages.length - 1) loadStage(currentStageIdx + 1);
-      else alert("All stages complete!");
+      else alert("All levels complete!");
     });
 
     loadStage(0);
