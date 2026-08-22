@@ -1,7 +1,9 @@
 const mapScreen = document.getElementById('map-screen');
 const gameScreen = document.getElementById('game-screen');
-const mapNodesEl = document.getElementById('map-nodes');
 const totalStarsEl = document.getElementById('total-stars');
+
+const mapCanvas = document.getElementById('map-canvas');
+const mapCtx = mapCanvas.getContext('2d');
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -135,7 +137,8 @@ function playMishitSound() {
 const mainLevels = [
   {
     id: 1,
-    name: "Level 1",
+    name: "Cyber Oasis",
+    theme: { base: '#0ea5e9', secondary: '#0284c7', atmosphere: '#38bdf8', ring: false },
     sublevels: [
       { name: "1.1", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 1, y: 1 }, grid: [[0, 2], [0, 0]] },
       { name: "1.2", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 0, dy: 1 }, target: { x: 1, y: 1 }, grid: [[0, 0], [2, 0]] }
@@ -143,7 +146,8 @@ const mainLevels = [
   },
   {
     id: 2,
-    name: "Level 2",
+    name: "Golden Gas Giant",
+    theme: { base: '#d97706', secondary: '#b45309', atmosphere: '#fbbf24', ring: true },
     sublevels: [
       { name: "2.1", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 1], [0, 0, 0], [0, 0, 0]] },
       { name: "2.2", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 0, 0], [0, 1, 0]] },
@@ -153,7 +157,8 @@ const mainLevels = [
   },
   {
     id: 3,
-    name: "Level 3",
+    name: "Emerald Nebula World",
+    theme: { base: '#059669', secondary: '#047857', atmosphere: '#34d399', ring: false },
     sublevels: [
       { name: "3.1", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] },
       { name: "3.2", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]] },
@@ -163,7 +168,8 @@ const mainLevels = [
   },
   {
     id: 4,
-    name: "Level 4",
+    name: "Crimson Lava Core",
+    theme: { base: '#dc2626', secondary: '#991b1b', atmosphere: '#f87171', ring: false },
     sublevels: [
       { name: "4.1", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [1, 0, 2, 0], [1, 0, 0, 2], [0, 0, 0, 0]] },
       { name: "4.2", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
@@ -171,7 +177,8 @@ const mainLevels = [
   },
   {
     id: 5,
-    name: "Level 5",
+    name: "Violet Void Realm",
+    theme: { base: '#7c3aed', secondary: '#5b21b6', atmosphere: '#c084fc', ring: true },
     sublevels: [
       { name: "5.1", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] },
       { name: "5.2", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 0, dy: 1 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 0], [1, 2, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
@@ -184,6 +191,342 @@ let playerProgress = {
   levelStars: Array(mainLevels.length).fill(0)
 };
 
+// SPACE BACKGROUND SYSTEM
+const stars = Array.from({ length: 60 }, () => ({
+  x: Math.random() * 380,
+  y: Math.random() * 520,
+  speed: 0.3 + Math.random() * 1.2,
+  size: 0.8 + Math.random() * 1.5,
+  alpha: 0.3 + Math.random() * 0.7
+}));
+
+let spaceEntity = null;
+let spaceEntityTimer = 0;
+
+function spawnSpaceEntity() {
+  const types = ['shooting_star', 'astronaut', 'comet', 'satellite'];
+  const choice = types[Math.floor(Math.random() * types.length)];
+
+  if (choice === 'shooting_star') {
+    spaceEntity = {
+      type: 'shooting_star',
+      x: Math.random() * 200,
+      y: Math.random() * 200,
+      vx: 6 + Math.random() * 4,
+      vy: 4 + Math.random() * 3,
+      life: 0,
+      maxLife: 40
+    };
+  } else if (choice === 'astronaut') {
+    spaceEntity = {
+      type: 'astronaut',
+      x: Math.random() * 300,
+      y: -20,
+      vy: 0.8,
+      vx: 0.3,
+      rot: 0,
+      vRot: 0.02
+    };
+  } else if (choice === 'comet') {
+    spaceEntity = {
+      type: 'comet',
+      x: -30,
+      y: Math.random() * 250,
+      vx: 3.5,
+      vy: 2.2,
+      tail: []
+    };
+  } else if (choice === 'satellite') {
+    spaceEntity = {
+      type: 'satellite',
+      x: 400,
+      y: Math.random() * 300,
+      vx: -0.6,
+      vy: 0.4,
+      rot: 0
+    };
+  }
+}
+
+function updateSpaceBackground() {
+  // Parallax Moving Stars
+  stars.forEach(s => {
+    s.y += s.speed;
+    if (s.y > 520) {
+      s.y = 0;
+      s.x = Math.random() * 380;
+    }
+  });
+
+  // Random Entity Spawning
+  spaceEntityTimer++;
+  if (!spaceEntity && spaceEntityTimer > 280) {
+    spawnSpaceEntity();
+    spaceEntityTimer = 0;
+  }
+
+  // Update Entity
+  if (spaceEntity) {
+    if (spaceEntity.type === 'shooting_star') {
+      spaceEntity.x += spaceEntity.vx;
+      spaceEntity.y += spaceEntity.vy;
+      spaceEntity.life++;
+      if (spaceEntity.life >= spaceEntity.maxLife) spaceEntity = null;
+    } else if (spaceEntity.type === 'astronaut') {
+      spaceEntity.x += spaceEntity.vx;
+      spaceEntity.y += spaceEntity.vy;
+      spaceEntity.rot += spaceEntity.vRot;
+      if (spaceEntity.y > 540) spaceEntity = null;
+    } else if (spaceEntity.type === 'comet') {
+      spaceEntity.x += spaceEntity.vx;
+      spaceEntity.y += spaceEntity.vy;
+      spaceEntity.tail.push({ x: spaceEntity.x, y: spaceEntity.y });
+      if (spaceEntity.tail.length > 15) spaceEntity.tail.shift();
+      if (spaceEntity.x > 420 || spaceEntity.y > 540) spaceEntity = null;
+    } else if (spaceEntity.type === 'satellite') {
+      spaceEntity.x += spaceEntity.vx;
+      spaceEntity.y += spaceEntity.vy;
+      spaceEntity.rot += 0.01;
+      if (spaceEntity.x < -40 || spaceEntity.y > 540) spaceEntity = null;
+    }
+  }
+}
+
+function drawSpaceBackground() {
+  mapCtx.fillStyle = '#020617';
+  mapCtx.fillRect(0, 0, 380, 520);
+
+  // Draw Stars
+  stars.forEach(s => {
+    mapCtx.fillStyle = `rgba(248, 250, 252, ${s.alpha})`;
+    mapCtx.beginPath();
+    mapCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+    mapCtx.fill();
+  });
+
+  // Draw Passing Space Objects
+  if (spaceEntity) {
+    if (spaceEntity.type === 'shooting_star') {
+      mapCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      mapCtx.lineWidth = 2;
+      mapCtx.beginPath();
+      mapCtx.moveTo(spaceEntity.x, spaceEntity.y);
+      mapCtx.lineTo(spaceEntity.x - spaceEntity.vx * 3, spaceEntity.y - spaceEntity.vy * 3);
+      mapCtx.stroke();
+    } else if (spaceEntity.type === 'astronaut') {
+      mapCtx.save();
+      mapCtx.translate(spaceEntity.x, spaceEntity.y);
+      mapCtx.rotate(spaceEntity.rot);
+      mapCtx.fillStyle = '#f8fafc';
+      mapCtx.beginPath(); mapCtx.arc(0, -3, 4, 0, Math.PI * 2); mapCtx.fill(); // Helmet
+      mapCtx.fillStyle = '#0284c7';
+      mapCtx.fillRect(-2, -2, 4, 2); // Visor
+      mapCtx.fillStyle = '#cbd5e1';
+      mapCtx.fillRect(-3, 1, 6, 6); // Suit Body
+      mapCtx.restore();
+    } else if (spaceEntity.type === 'comet') {
+      spaceEntity.tail.forEach((t, idx) => {
+        let r = (idx / spaceEntity.tail.length) * 4;
+        mapCtx.fillStyle = `rgba(56, 189, 248, ${idx / spaceEntity.tail.length})`;
+        mapCtx.beginPath(); mapCtx.arc(t.x, t.y, r, 0, Math.PI * 2); mapCtx.fill();
+      });
+    } else if (spaceEntity.type === 'satellite') {
+      mapCtx.save();
+      mapCtx.translate(spaceEntity.x, spaceEntity.y);
+      mapCtx.rotate(spaceEntity.rot);
+      mapCtx.fillStyle = '#64748b';
+      mapCtx.fillRect(-4, -4, 8, 8); // Body
+      mapCtx.fillStyle = '#0284c7';
+      mapCtx.fillRect(-12, -2, 7, 4); mapCtx.fillRect(5, -2, 7, 4); // Panels
+      mapCtx.restore();
+    }
+  }
+}
+
+// MAP PLANET POSITIONS
+const planetPositions = [
+  { x: 190, y: 440 }, // Level 1
+  { x: 110, y: 340 }, // Level 2
+  { x: 270, y: 240 }, // Level 3
+  { x: 120, y: 140 }, // Level 4
+  { x: 240, y: 50 }   // Level 5
+];
+
+let bridgeAnim = null; // Stores bridge unlock animation state
+
+function drawPlanet(x, y, radius, levelObj, isUnlocked, isCompleted, isCurrent, nowTime) {
+  mapCtx.save();
+
+  // Atmosphere Pulse
+  let pulse = Math.sin(nowTime * 0.004) * 3;
+  let atmosphereColor = isUnlocked ? levelObj.theme.atmosphere : '#334155';
+
+  mapCtx.shadowColor = atmosphereColor;
+  mapCtx.shadowBlur = isCurrent ? 22 + pulse : (isUnlocked ? 12 : 0);
+
+  // Base Planet Sphere Gradient (3D Shading)
+  let grad = mapCtx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, radius * 0.1, x, y, radius);
+  if (isUnlocked) {
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.3, levelObj.theme.base);
+    grad.addColorStop(1, levelObj.theme.secondary);
+  } else {
+    grad.addColorStop(0, '#64748b');
+    grad.addColorStop(1, '#1e293b');
+  }
+
+  mapCtx.fillStyle = grad;
+  mapCtx.beginPath();
+  mapCtx.arc(x, y, radius, 0, Math.PI * 2);
+  mapCtx.fill();
+  mapCtx.shadowBlur = 0;
+
+  // Planetary Ring for Gas Giants
+  if (levelObj.theme.ring && isUnlocked) {
+    mapCtx.save();
+    mapCtx.translate(x, y);
+    mapCtx.rotate(-Math.PI / 6 + Math.sin(nowTime * 0.001) * 0.05);
+    mapCtx.strokeStyle = levelObj.theme.atmosphere;
+    mapCtx.lineWidth = 4;
+    mapCtx.beginPath();
+    mapCtx.ellipse(0, 0, radius * 1.6, radius * 0.4, 0, 0, Math.PI * 2);
+    mapCtx.stroke();
+    mapCtx.restore();
+  }
+
+  // Text / Icon Label
+  mapCtx.fillStyle = isUnlocked ? '#ffffff' : '#64748b';
+  mapCtx.font = 'bold 15px system-ui';
+  mapCtx.textAlign = 'center';
+  mapCtx.textBaseline = 'middle';
+  mapCtx.fillText(isUnlocked ? levelObj.id : '🔒', x, y);
+
+  // Stars Display for Completed Levels
+  if (isCompleted) {
+    let starsStr = '⭐'.repeat(playerProgress.levelStars[levelObj.id - 1]);
+    mapCtx.font = '11px system-ui';
+    mapCtx.fillText(starsStr, x, y + radius + 14);
+  }
+
+  mapCtx.restore();
+}
+
+function drawMapBridges(nowTime) {
+  for (let i = 0; i < mainLevels.length - 1; i++) {
+    const p1 = planetPositions[i];
+    const p2 = planetPositions[i + 1];
+    const isUnlocked = i + 1 <= playerProgress.unlockedLevel;
+
+    mapCtx.save();
+    if (bridgeAnim && bridgeAnim.fromIdx === i) {
+      // Animated Bridge Progress
+      let curX = p1.x + (p2.x - p1.x) * bridgeAnim.progress;
+      let curY = p1.y + (p2.y - p1.y) * bridgeAnim.progress;
+
+      mapCtx.strokeStyle = '#38bdf8';
+      mapCtx.lineWidth = 5;
+      mapCtx.shadowColor = '#38bdf8';
+      mapCtx.shadowBlur = 15;
+      mapCtx.beginPath();
+      mapCtx.moveTo(p1.x, p1.y);
+      mapCtx.lineTo(curX, curY);
+      mapCtx.stroke();
+    } else if (isUnlocked) {
+      // Completed / Unlocked Bridge Line
+      mapCtx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+      mapCtx.lineWidth = 4;
+      mapCtx.setLineDash([8, 6]);
+      mapCtx.lineDashOffset = -nowTime * 0.02;
+      mapCtx.beginPath();
+      mapCtx.moveTo(p1.x, p1.y);
+      mapCtx.lineTo(p2.x, p2.y);
+      mapCtx.stroke();
+    } else {
+      // Locked Bridge Line
+      mapCtx.strokeStyle = '#334155';
+      mapCtx.lineWidth = 2;
+      mapCtx.beginPath();
+      mapCtx.moveTo(p1.x, p1.y);
+      mapCtx.lineTo(p2.x, p2.y);
+      mapCtx.stroke();
+    }
+    mapCtx.restore();
+  }
+}
+
+function renderMapCanvas(nowTime) {
+  drawSpaceBackground();
+  drawMapBridges(nowTime);
+
+  let sumStars = playerProgress.levelStars.reduce((a, b) => a + b, 0);
+  totalStarsEl.textContent = `Total Stars: ⭐ ${sumStars}`;
+
+  mainLevels.forEach((lvl, idx) => {
+    const pos = planetPositions[idx];
+    const isUnlocked = idx <= playerProgress.unlockedLevel;
+    const isCompleted = playerProgress.levelStars[idx] > 0;
+    const isCurrent = idx === playerProgress.unlockedLevel;
+
+    drawPlanet(pos.x, pos.y, 26, lvl, isUnlocked, isCompleted, isCurrent, nowTime);
+  });
+}
+
+let mapAnimFrameId = null;
+
+function startMapLoop() {
+  function loop(now) {
+    updateSpaceBackground();
+
+    // Update Bridge Unlock Animation
+    if (bridgeAnim) {
+      bridgeAnim.progress += 0.02;
+      if (bridgeAnim.progress >= 1.0) {
+        bridgeAnim = null; // Animation finished
+      }
+    }
+
+    renderMapCanvas(now);
+
+    if (mapScreen.style.display !== 'none') {
+      mapAnimFrameId = requestAnimationFrame(loop);
+    }
+  }
+  mapAnimFrameId = requestAnimationFrame(loop);
+}
+
+function showMapScreen() {
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+  stopLaserHumSound();
+  gameScreen.style.display = 'none';
+  mapScreen.style.display = 'flex';
+
+  if (justCompletedLevelIdx !== null) {
+    bridgeAnim = { fromIdx: justCompletedLevelIdx, progress: 0.0 };
+    justCompletedLevelIdx = null;
+  }
+
+  startMapLoop();
+}
+
+mapCanvas.addEventListener('click', (e) => {
+  const rect = mapCanvas.getBoundingClientRect();
+  const scaleX = mapCanvas.width / rect.width;
+  const scaleY = mapCanvas.height / rect.height;
+
+  const clickX = (e.clientX - rect.left) * scaleX;
+  const clickY = (e.clientY - rect.top) * scaleY;
+
+  mainLevels.forEach((lvl, idx) => {
+    const pos = planetPositions[idx];
+    const dist = Math.sqrt((clickX - pos.x) ** 2 + (clickY - pos.y) ** 2);
+
+    if (dist <= 30 && idx <= playerProgress.unlockedLevel) {
+      startMainLevel(idx);
+    }
+  });
+});
+
+// GAME ENGINE STATE & HANDLERS
 let currentMainIdx = 0;
 let currentSubIdx = 0;
 let activeSubConfig = null;
@@ -211,61 +554,6 @@ let justCompletedLevelIdx = null;
 function updateAttemptsUI() {
   const remaining = MAX_ATTEMPTS - attemptsUsed;
   attemptsLeftEl.textContent = `Energy Shots: ${'⚡'.repeat(remaining)}${'❌'.repeat(attemptsUsed)}`;
-}
-
-function renderMap() {
-  mapNodesEl.innerHTML = '';
-  let sumStars = playerProgress.levelStars.reduce((a, b) => a + b, 0);
-  totalStarsEl.textContent = `Total Stars: ⭐ ${sumStars}`;
-
-  mainLevels.forEach((lvl, idx) => {
-    const isUnlocked = idx <= playerProgress.unlockedLevel;
-    const isCompleted = playerProgress.levelStars[idx] > 0;
-    const isCurrent = idx === playerProgress.unlockedLevel;
-
-    const row = document.createElement('div');
-    row.className = 'map-node-row';
-
-    const node = document.createElement('div');
-    node.id = `map-node-${idx}`;
-    node.className = `map-node ${isUnlocked ? 'unlocked' : ''} ${isCompleted ? 'completed' : ''} ${isCurrent ? 'active-current' : ''}`;
-    node.textContent = isUnlocked ? lvl.id : '🔒';
-
-    if (isCompleted) {
-      const starsDisplay = document.createElement('div');
-      starsDisplay.className = 'node-stars';
-      starsDisplay.textContent = '⭐'.repeat(playerProgress.levelStars[idx]);
-      node.appendChild(starsDisplay);
-    }
-
-    if (isUnlocked) {
-      node.addEventListener('click', () => startMainLevel(idx));
-    }
-
-    row.appendChild(node);
-    mapNodesEl.appendChild(row);
-  });
-
-  if (justCompletedLevelIdx !== null) {
-    const prevNode = document.getElementById(`map-node-${justCompletedLevelIdx}`);
-    const nextNode = document.getElementById(`map-node-${justCompletedLevelIdx + 1}`);
-
-    if (prevNode) prevNode.classList.add('anim-complete');
-
-    setTimeout(() => {
-      if (nextNode) nextNode.classList.add('anim-unlock');
-    }, 600);
-
-    justCompletedLevelIdx = null;
-  }
-}
-
-function showMapScreen() {
-  if (animFrameId) cancelAnimationFrame(animFrameId);
-  stopLaserHumSound();
-  gameScreen.style.display = 'none';
-  mapScreen.style.display = 'flex';
-  renderMap();
 }
 
 function startMainLevel(mainIdx) {
@@ -545,7 +833,7 @@ function draw() {
     ctx.shadowBlur = 0;
   }
 
-  // ENHANCEMENT: Source Emitter Node with Breathing Glow
+  // Source Emitter Node with Breathing Glow
   let ex = (source.x + 0.5) * TILE_SIZE;
   let ey = (source.y + 0.5) * TILE_SIZE;
   let radius = TILE_SIZE * 0.22;
