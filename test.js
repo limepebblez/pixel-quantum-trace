@@ -127,28 +127,56 @@ function stopLaserHumSound() {
   humNodes = null;
 }
 
-function playTargetHitSound() {
+function playVictoryFanfare() {
   const ac = getAudioContext();
   const now = ac.currentTime;
-  const notes = [523.25, 659.25, 783.99, 1046.50];
 
-  notes.forEach((freq, idx) => {
+  const notes = [
+    { freq: 523.25, time: 0.00, duration: 0.12, type: 'triangle' }, // C5
+    { freq: 659.25, time: 0.10, duration: 0.12, type: 'triangle' }, // E5
+    { freq: 783.99, time: 0.20, duration: 0.12, type: 'triangle' }, // G5
+    { freq: 1046.50, time: 0.30, duration: 0.15, type: 'sine' },     // C6
+    { freq: 1318.51, time: 0.45, duration: 0.60, type: 'sine' }      // E6
+  ];
+
+  notes.forEach(n => {
     const osc = ac.createOscillator();
     const gain = ac.createGain();
-    const noteTime = now + idx * 0.06;
+    const noteTime = now + n.time;
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, noteTime);
+    osc.type = n.type;
+    osc.frequency.setValueAtTime(n.freq, noteTime);
 
     gain.gain.setValueAtTime(0.001, noteTime);
-    gain.gain.exponentialRampToValueAtTime(0.2, noteTime + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.35);
+    gain.gain.exponentialRampToValueAtTime(0.25, noteTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, noteTime + n.duration);
 
     osc.connect(gain);
     gain.connect(ac.destination);
 
     osc.start(noteTime);
-    osc.stop(noteTime + 0.35);
+    osc.stop(noteTime + n.duration);
+  });
+
+  const chord = [523.25, 783.99, 1046.50];
+  const chordTime = now + 0.45;
+
+  chord.forEach(freq => {
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, chordTime);
+
+    gain.gain.setValueAtTime(0.001, chordTime);
+    gain.gain.exponentialRampToValueAtTime(0.12, chordTime + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, chordTime + 0.65);
+
+    osc.connect(gain);
+    gain.connect(ac.destination);
+
+    osc.start(chordTime);
+    osc.stop(chordTime + 0.65);
   });
 }
 
@@ -411,7 +439,7 @@ function updateLaserAnimation(dt) {
       nextBtn.disabled = false;
       statusEl.textContent = 'SIGNAL CONNECTED!';
       statusEl.className = 'win';
-      playTargetHitSound();
+      playVictoryFanfare();
     } else {
       playMishitSound();
       if (attemptsUsed === 1) {
