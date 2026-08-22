@@ -138,7 +138,7 @@ const mainLevels = [
   {
     id: 1,
     name: "Cyber Oasis",
-    theme: { base: '#0ea5e9', secondary: '#0284c7', atmosphere: '#38bdf8', ring: false },
+    theme: { type: 'earth', base: '#0ea5e9', secondary: '#0369a1', atmosphere: '#38bdf8', ring: false },
     sublevels: [
       { name: "1.1", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 1, y: 1 }, grid: [[0, 2], [0, 0]] },
       { name: "1.2", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 0, dy: 1 }, target: { x: 1, y: 1 }, grid: [[0, 0], [2, 0]] }
@@ -147,7 +147,7 @@ const mainLevels = [
   {
     id: 2,
     name: "Golden Gas Giant",
-    theme: { base: '#d97706', secondary: '#b45309', atmosphere: '#fbbf24', ring: true },
+    theme: { type: 'gas', base: '#d97706', secondary: '#78350f', atmosphere: '#fbbf24', ring: true },
     sublevels: [
       { name: "2.1", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 1], [0, 0, 0], [0, 0, 0]] },
       { name: "2.2", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 0, 0], [0, 1, 0]] },
@@ -158,7 +158,7 @@ const mainLevels = [
   {
     id: 3,
     name: "Emerald Nebula World",
-    theme: { base: '#059669', secondary: '#047857', atmosphere: '#34d399', ring: false },
+    theme: { type: 'alien', base: '#059669', secondary: '#064e3b', atmosphere: '#34d399', ring: false },
     sublevels: [
       { name: "3.1", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] },
       { name: "3.2", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]] },
@@ -169,7 +169,7 @@ const mainLevels = [
   {
     id: 4,
     name: "Crimson Lava Core",
-    theme: { base: '#dc2626', secondary: '#991b1b', atmosphere: '#f87171', ring: false },
+    theme: { type: 'lava', base: '#dc2626', secondary: '#450a0a', atmosphere: '#f87171', ring: false },
     sublevels: [
       { name: "4.1", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [1, 0, 2, 0], [1, 0, 0, 2], [0, 0, 0, 0]] },
       { name: "4.2", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
@@ -178,7 +178,7 @@ const mainLevels = [
   {
     id: 5,
     name: "Violet Void Realm",
-    theme: { base: '#7c3aed', secondary: '#5b21b6', atmosphere: '#c084fc', ring: true },
+    theme: { type: 'void', base: '#7c3aed', secondary: '#3b0764', atmosphere: '#c084fc', ring: true },
     sublevels: [
       { name: "5.1", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] },
       { name: "5.2", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 0, dy: 1 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 0], [1, 2, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
@@ -191,11 +191,31 @@ let playerProgress = {
   levelStars: Array(mainLevels.length).fill(0)
 };
 
+// DYNAMIC CANVAS RESIZING TO PREVENT OVAL DISTORTION
+function syncMapCanvasResolution() {
+  const rect = mapCanvas.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
+    if (mapCanvas.width !== rect.width || mapCanvas.height !== rect.height) {
+      mapCanvas.width = rect.width;
+      mapCanvas.height = rect.height;
+    }
+  }
+}
+
+// PLANET POSITIONS (AS PERCENTAGE OF CANVAS SIZE TO FIT ANY ASPECT RATIO PERFECTLY)
+const planetPosRatios = [
+  { rx: 0.50, ry: 0.84 }, // Level 1
+  { rx: 0.28, ry: 0.66 }, // Level 2
+  { rx: 0.72, ry: 0.48 }, // Level 3
+  { rx: 0.32, ry: 0.30 }, // Level 4
+  { rx: 0.62, ry: 0.12 }  // Level 5
+];
+
 // SPACE BACKGROUND SYSTEM
-const stars = Array.from({ length: 60 }, () => ({
-  x: Math.random() * 380,
-  y: Math.random() * 520,
-  speed: 0.3 + Math.random() * 1.2,
+const stars = Array.from({ length: 70 }, () => ({
+  rx: Math.random(),
+  ry: Math.random(),
+  speed: 0.0005 + Math.random() * 0.002,
   size: 0.8 + Math.random() * 1.5,
   alpha: 0.3 + Math.random() * 0.7
 }));
@@ -210,119 +230,123 @@ function spawnSpaceEntity() {
   if (choice === 'shooting_star') {
     spaceEntity = {
       type: 'shooting_star',
-      x: Math.random() * 200,
-      y: Math.random() * 200,
-      vx: 6 + Math.random() * 4,
-      vy: 4 + Math.random() * 3,
+      rx: Math.random() * 0.5,
+      ry: Math.random() * 0.5,
+      vx: 0.015,
+      vy: 0.01,
       life: 0,
       maxLife: 40
     };
   } else if (choice === 'astronaut') {
     spaceEntity = {
       type: 'astronaut',
-      x: Math.random() * 300,
-      y: -20,
-      vy: 0.8,
-      vx: 0.3,
+      rx: Math.random() * 0.8,
+      ry: -0.05,
+      vy: 0.002,
+      vx: 0.0008,
       rot: 0,
       vRot: 0.02
     };
   } else if (choice === 'comet') {
     spaceEntity = {
       type: 'comet',
-      x: -30,
-      y: Math.random() * 250,
-      vx: 3.5,
-      vy: 2.2,
+      rx: -0.05,
+      ry: Math.random() * 0.5,
+      vx: 0.008,
+      vy: 0.005,
       tail: []
     };
   } else if (choice === 'satellite') {
     spaceEntity = {
       type: 'satellite',
-      x: 400,
-      y: Math.random() * 300,
-      vx: -0.6,
-      vy: 0.4,
+      rx: 1.05,
+      ry: Math.random() * 0.6,
+      vx: -0.002,
+      vy: 0.001,
       rot: 0
     };
   }
 }
 
 function updateSpaceBackground() {
-  // Parallax Moving Stars
+  const w = mapCanvas.width;
+  const h = mapCanvas.height;
+
   stars.forEach(s => {
-    s.y += s.speed;
-    if (s.y > 520) {
-      s.y = 0;
-      s.x = Math.random() * 380;
+    s.ry += s.speed;
+    if (s.ry > 1.0) {
+      s.ry = 0;
+      s.rx = Math.random();
     }
   });
 
-  // Random Entity Spawning
   spaceEntityTimer++;
-  if (!spaceEntity && spaceEntityTimer > 280) {
+  if (!spaceEntity && spaceEntityTimer > 260) {
     spawnSpaceEntity();
     spaceEntityTimer = 0;
   }
 
-  // Update Entity
   if (spaceEntity) {
     if (spaceEntity.type === 'shooting_star') {
-      spaceEntity.x += spaceEntity.vx;
-      spaceEntity.y += spaceEntity.vy;
+      spaceEntity.rx += spaceEntity.vx;
+      spaceEntity.ry += spaceEntity.vy;
       spaceEntity.life++;
       if (spaceEntity.life >= spaceEntity.maxLife) spaceEntity = null;
     } else if (spaceEntity.type === 'astronaut') {
-      spaceEntity.x += spaceEntity.vx;
-      spaceEntity.y += spaceEntity.vy;
+      spaceEntity.rx += spaceEntity.vx;
+      spaceEntity.ry += spaceEntity.vy;
       spaceEntity.rot += spaceEntity.vRot;
-      if (spaceEntity.y > 540) spaceEntity = null;
+      if (spaceEntity.ry > 1.1) spaceEntity = null;
     } else if (spaceEntity.type === 'comet') {
-      spaceEntity.x += spaceEntity.vx;
-      spaceEntity.y += spaceEntity.vy;
-      spaceEntity.tail.push({ x: spaceEntity.x, y: spaceEntity.y });
+      spaceEntity.rx += spaceEntity.vx;
+      spaceEntity.ry += spaceEntity.vy;
+      spaceEntity.tail.push({ x: spaceEntity.rx * w, y: spaceEntity.ry * h });
       if (spaceEntity.tail.length > 15) spaceEntity.tail.shift();
-      if (spaceEntity.x > 420 || spaceEntity.y > 540) spaceEntity = null;
+      if (spaceEntity.rx > 1.1 || spaceEntity.ry > 1.1) spaceEntity = null;
     } else if (spaceEntity.type === 'satellite') {
-      spaceEntity.x += spaceEntity.vx;
-      spaceEntity.y += spaceEntity.vy;
+      spaceEntity.rx += spaceEntity.vx;
+      spaceEntity.ry += spaceEntity.vy;
       spaceEntity.rot += 0.01;
-      if (spaceEntity.x < -40 || spaceEntity.y > 540) spaceEntity = null;
+      if (spaceEntity.rx < -0.1 || spaceEntity.ry > 1.1) spaceEntity = null;
     }
   }
 }
 
 function drawSpaceBackground() {
-  mapCtx.fillStyle = '#020617';
-  mapCtx.fillRect(0, 0, 380, 520);
+  const w = mapCanvas.width;
+  const h = mapCanvas.height;
 
-  // Draw Stars
+  mapCtx.fillStyle = '#020617';
+  mapCtx.fillRect(0, 0, w, h);
+
   stars.forEach(s => {
     mapCtx.fillStyle = `rgba(248, 250, 252, ${s.alpha})`;
     mapCtx.beginPath();
-    mapCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+    mapCtx.arc(s.rx * w, s.ry * h, s.size, 0, Math.PI * 2);
     mapCtx.fill();
   });
 
-  // Draw Passing Space Objects
   if (spaceEntity) {
+    const ex = spaceEntity.rx * w;
+    const ey = spaceEntity.ry * h;
+
     if (spaceEntity.type === 'shooting_star') {
       mapCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
       mapCtx.lineWidth = 2;
       mapCtx.beginPath();
-      mapCtx.moveTo(spaceEntity.x, spaceEntity.y);
-      mapCtx.lineTo(spaceEntity.x - spaceEntity.vx * 3, spaceEntity.y - spaceEntity.vy * 3);
+      mapCtx.moveTo(ex, ey);
+      mapCtx.lineTo(ex - spaceEntity.vx * w * 3, ey - spaceEntity.vy * h * 3);
       mapCtx.stroke();
     } else if (spaceEntity.type === 'astronaut') {
       mapCtx.save();
-      mapCtx.translate(spaceEntity.x, spaceEntity.y);
+      mapCtx.translate(ex, ey);
       mapCtx.rotate(spaceEntity.rot);
       mapCtx.fillStyle = '#f8fafc';
-      mapCtx.beginPath(); mapCtx.arc(0, -3, 4, 0, Math.PI * 2); mapCtx.fill(); // Helmet
+      mapCtx.beginPath(); mapCtx.arc(0, -3, 4, 0, Math.PI * 2); mapCtx.fill();
       mapCtx.fillStyle = '#0284c7';
-      mapCtx.fillRect(-2, -2, 4, 2); // Visor
+      mapCtx.fillRect(-2, -2, 4, 2);
       mapCtx.fillStyle = '#cbd5e1';
-      mapCtx.fillRect(-3, 1, 6, 6); // Suit Body
+      mapCtx.fillRect(-3, 1, 6, 6);
       mapCtx.restore();
     } else if (spaceEntity.type === 'comet') {
       spaceEntity.tail.forEach((t, idx) => {
@@ -332,94 +356,140 @@ function drawSpaceBackground() {
       });
     } else if (spaceEntity.type === 'satellite') {
       mapCtx.save();
-      mapCtx.translate(spaceEntity.x, spaceEntity.y);
+      mapCtx.translate(ex, ey);
       mapCtx.rotate(spaceEntity.rot);
       mapCtx.fillStyle = '#64748b';
-      mapCtx.fillRect(-4, -4, 8, 8); // Body
+      mapCtx.fillRect(-4, -4, 8, 8);
       mapCtx.fillStyle = '#0284c7';
-      mapCtx.fillRect(-12, -2, 7, 4); mapCtx.fillRect(5, -2, 7, 4); // Panels
+      mapCtx.fillRect(-12, -2, 7, 4); mapCtx.fillRect(5, -2, 7, 4);
       mapCtx.restore();
     }
   }
 }
 
-// MAP PLANET POSITIONS
-const planetPositions = [
-  { x: 190, y: 440 }, // Level 1
-  { x: 110, y: 340 }, // Level 2
-  { x: 270, y: 240 }, // Level 3
-  { x: 120, y: 140 }, // Level 4
-  { x: 240, y: 50 }   // Level 5
-];
+let bridgeAnim = null;
 
-let bridgeAnim = null; // Stores bridge unlock animation state
+// HIGH-QUALITY 3D PLANET PROCEDURAL SHADER & TEXTURE ENGINE
+function draw3DPlanet(x, y, radius, levelObj, isUnlocked, isCompleted, isCurrent, nowTime) {
+  const rotOffset = (nowTime * 0.015) % (radius * 2);
 
-function drawPlanet(x, y, radius, levelObj, isUnlocked, isCompleted, isCurrent, nowTime) {
-  mapCtx.save();
-
-  // Atmosphere Pulse
-  let pulse = Math.sin(nowTime * 0.004) * 3;
-  let atmosphereColor = isUnlocked ? levelObj.theme.atmosphere : '#334155';
-
-  mapCtx.shadowColor = atmosphereColor;
-  mapCtx.shadowBlur = isCurrent ? 22 + pulse : (isUnlocked ? 12 : 0);
-
-  // Base Planet Sphere Gradient (3D Shading)
-  let grad = mapCtx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, radius * 0.1, x, y, radius);
-  if (isUnlocked) {
-    grad.addColorStop(0, '#ffffff');
-    grad.addColorStop(0.3, levelObj.theme.base);
-    grad.addColorStop(1, levelObj.theme.secondary);
-  } else {
-    grad.addColorStop(0, '#64748b');
-    grad.addColorStop(1, '#1e293b');
-  }
-
-  mapCtx.fillStyle = grad;
-  mapCtx.beginPath();
-  mapCtx.arc(x, y, radius, 0, Math.PI * 2);
-  mapCtx.fill();
-  mapCtx.shadowBlur = 0;
-
-  // Planetary Ring for Gas Giants
+  // 1. BACK RING PASS (Renders behind the planet body for 3D depth wrapping)
   if (levelObj.theme.ring && isUnlocked) {
     mapCtx.save();
     mapCtx.translate(x, y);
-    mapCtx.rotate(-Math.PI / 6 + Math.sin(nowTime * 0.001) * 0.05);
+    mapCtx.rotate(-Math.PI / 7);
     mapCtx.strokeStyle = levelObj.theme.atmosphere;
-    mapCtx.lineWidth = 4;
+    mapCtx.lineWidth = 6;
+    mapCtx.globalAlpha = 0.55;
     mapCtx.beginPath();
-    mapCtx.ellipse(0, 0, radius * 1.6, radius * 0.4, 0, 0, Math.PI * 2);
+    mapCtx.ellipse(0, 0, radius * 1.85, radius * 0.42, 0, Math.PI, Math.PI * 2); // Top Back Arc
     mapCtx.stroke();
     mapCtx.restore();
   }
 
-  // Text / Icon Label
-  mapCtx.fillStyle = isUnlocked ? '#ffffff' : '#64748b';
-  mapCtx.font = 'bold 15px system-ui';
+  // 2. ATMOSPHERIC SHADOW GLOW / RIM
+  if (isUnlocked) {
+    mapCtx.save();
+    mapCtx.shadowColor = levelObj.theme.atmosphere;
+    mapCtx.shadowBlur = isCurrent ? 26 + Math.sin(nowTime * 0.005) * 6 : 14;
+    mapCtx.fillStyle = levelObj.theme.base;
+    mapCtx.beginPath();
+    mapCtx.arc(x, y, radius, 0, Math.PI * 2);
+    mapCtx.fill();
+    mapCtx.restore();
+  }
+
+  // 3. PLANET SPHERE & MOVING SURFACE TEXTURES
+  mapCtx.save();
+  mapCtx.beginPath();
+  mapCtx.arc(x, y, radius, 0, Math.PI * 2); // Clip texture strictly inside perfect circle
+  mapCtx.clip();
+
+  if (isUnlocked) {
+    // Base Color Fill
+    mapCtx.fillStyle = levelObj.theme.secondary;
+    mapCtx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+
+    // Procedural Moving Surface Details (Simulates 3D Planet Rotation)
+    mapCtx.fillStyle = levelObj.theme.base;
+    mapCtx.globalAlpha = 0.65;
+
+    for (let i = -2; i <= 2; i++) {
+      let stripeY = y + i * (radius * 0.38);
+      let stripeX = x - radius + ((rotOffset + i * 18) % (radius * 2));
+
+      mapCtx.beginPath();
+      mapCtx.ellipse(stripeX, stripeY, radius * 0.8, radius * 0.18, 0, 0, Math.PI * 2);
+      mapCtx.ellipse(stripeX - radius * 2, stripeY, radius * 0.8, radius * 0.18, 0, 0, Math.PI * 2);
+      mapCtx.fill();
+    }
+
+    // 3D SPHERICAL SHADING OVERLAY (Realistic Light Source from Top-Left)
+    let shadowGrad = mapCtx.createRadialGradient(
+      x - radius * 0.45, y - radius * 0.45, radius * 0.1,
+      x + radius * 0.2, y + radius * 0.2, radius * 1.05
+    );
+    shadowGrad.addColorStop(0, 'rgba(255, 255, 255, 0.45)'); // Specular Light Spot
+    shadowGrad.addColorStop(0.35, 'rgba(255, 255, 255, 0.0)'); // Midtone Transition
+    shadowGrad.addColorStop(0.75, 'rgba(0, 0, 0, 0.55)');     // Dark Shadow Side
+    shadowGrad.addColorStop(1.0, 'rgba(0, 0, 0, 0.90)');      // Deep Night Side
+
+    mapCtx.globalAlpha = 1.0;
+    mapCtx.fillStyle = shadowGrad;
+    mapCtx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  } else {
+    // Locked Planet Grey Shading
+    let lockedGrad = mapCtx.createRadialGradient(x - radius * 0.3, y - radius * 0.3, radius * 0.1, x, y, radius);
+    lockedGrad.addColorStop(0, '#64748b');
+    lockedGrad.addColorStop(1, '#0f172a');
+    mapCtx.fillStyle = lockedGrad;
+    mapCtx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  }
+
+  mapCtx.restore(); // Exit sphere clipping
+
+  // 4. FRONT RING PASS (Renders in front of the planet for true 3D depth)
+  if (levelObj.theme.ring && isUnlocked) {
+    mapCtx.save();
+    mapCtx.translate(x, y);
+    mapCtx.rotate(-Math.PI / 7);
+    mapCtx.strokeStyle = levelObj.theme.atmosphere;
+    mapCtx.lineWidth = 6;
+    mapCtx.globalAlpha = 0.9;
+    mapCtx.beginPath();
+    mapCtx.ellipse(0, 0, radius * 1.85, radius * 0.42, 0, 0, Math.PI); // Bottom Front Arc
+    mapCtx.stroke();
+    mapCtx.restore();
+  }
+
+  // 5. TEXT / ICON LABELS
+  mapCtx.save();
+  mapCtx.fillStyle = isUnlocked ? '#ffffff' : '#94a3b8';
+  mapCtx.font = 'bold 16px system-ui';
   mapCtx.textAlign = 'center';
   mapCtx.textBaseline = 'middle';
   mapCtx.fillText(isUnlocked ? levelObj.id : '🔒', x, y);
 
-  // Stars Display for Completed Levels
+  // Star Ratings Below Completed Planet
   if (isCompleted) {
     let starsStr = '⭐'.repeat(playerProgress.levelStars[levelObj.id - 1]);
-    mapCtx.font = '11px system-ui';
-    mapCtx.fillText(starsStr, x, y + radius + 14);
+    mapCtx.font = '12px system-ui';
+    mapCtx.fillText(starsStr, x, y + radius + 15);
   }
-
   mapCtx.restore();
 }
 
 function drawMapBridges(nowTime) {
+  const w = mapCanvas.width;
+  const h = mapCanvas.height;
+
   for (let i = 0; i < mainLevels.length - 1; i++) {
-    const p1 = planetPositions[i];
-    const p2 = planetPositions[i + 1];
+    const p1 = { x: planetPosRatios[i].rx * w, y: planetPosRatios[i].ry * h };
+    const p2 = { x: planetPosRatios[i + 1].rx * w, y: planetPosRatios[i + 1].ry * h };
     const isUnlocked = i + 1 <= playerProgress.unlockedLevel;
 
     mapCtx.save();
     if (bridgeAnim && bridgeAnim.fromIdx === i) {
-      // Animated Bridge Progress
       let curX = p1.x + (p2.x - p1.x) * bridgeAnim.progress;
       let curY = p1.y + (p2.y - p1.y) * bridgeAnim.progress;
 
@@ -432,8 +502,7 @@ function drawMapBridges(nowTime) {
       mapCtx.lineTo(curX, curY);
       mapCtx.stroke();
     } else if (isUnlocked) {
-      // Completed / Unlocked Bridge Line
-      mapCtx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+      mapCtx.strokeStyle = 'rgba(56, 189, 248, 0.65)';
       mapCtx.lineWidth = 4;
       mapCtx.setLineDash([8, 6]);
       mapCtx.lineDashOffset = -nowTime * 0.02;
@@ -442,7 +511,6 @@ function drawMapBridges(nowTime) {
       mapCtx.lineTo(p2.x, p2.y);
       mapCtx.stroke();
     } else {
-      // Locked Bridge Line
       mapCtx.strokeStyle = '#334155';
       mapCtx.lineWidth = 2;
       mapCtx.beginPath();
@@ -455,6 +523,12 @@ function drawMapBridges(nowTime) {
 }
 
 function renderMapCanvas(nowTime) {
+  syncMapCanvasResolution();
+
+  const w = mapCanvas.width;
+  const h = mapCanvas.height;
+  const planetRadius = Math.min(w, h) * 0.085; // Perfectly round scaling radius
+
   drawSpaceBackground();
   drawMapBridges(nowTime);
 
@@ -462,12 +536,12 @@ function renderMapCanvas(nowTime) {
   totalStarsEl.textContent = `Total Stars: ⭐ ${sumStars}`;
 
   mainLevels.forEach((lvl, idx) => {
-    const pos = planetPositions[idx];
+    const pos = { x: planetPosRatios[idx].rx * w, y: planetPosRatios[idx].ry * h };
     const isUnlocked = idx <= playerProgress.unlockedLevel;
     const isCompleted = playerProgress.levelStars[idx] > 0;
     const isCurrent = idx === playerProgress.unlockedLevel;
 
-    drawPlanet(pos.x, pos.y, 26, lvl, isUnlocked, isCompleted, isCurrent, nowTime);
+    draw3DPlanet(pos.x, pos.y, planetRadius, lvl, isUnlocked, isCompleted, isCurrent, nowTime);
   });
 }
 
@@ -477,11 +551,10 @@ function startMapLoop() {
   function loop(now) {
     updateSpaceBackground();
 
-    // Update Bridge Unlock Animation
     if (bridgeAnim) {
       bridgeAnim.progress += 0.02;
       if (bridgeAnim.progress >= 1.0) {
-        bridgeAnim = null; // Animation finished
+        bridgeAnim = null;
       }
     }
 
@@ -516,11 +589,15 @@ mapCanvas.addEventListener('click', (e) => {
   const clickX = (e.clientX - rect.left) * scaleX;
   const clickY = (e.clientY - rect.top) * scaleY;
 
+  const w = mapCanvas.width;
+  const h = mapCanvas.height;
+  const planetRadius = Math.min(w, h) * 0.085;
+
   mainLevels.forEach((lvl, idx) => {
-    const pos = planetPositions[idx];
+    const pos = { x: planetPosRatios[idx].rx * w, y: planetPosRatios[idx].ry * h };
     const dist = Math.sqrt((clickX - pos.x) ** 2 + (clickY - pos.y) ** 2);
 
-    if (dist <= 30 && idx <= playerProgress.unlockedLevel) {
+    if (dist <= planetRadius * 1.3 && idx <= playerProgress.unlockedLevel) {
       startMainLevel(idx);
     }
   });

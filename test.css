@@ -46,7 +46,7 @@ body {
 }
 
 .map-hud {
-  background: rgba(2, 6, 23, 0.7);
+  background: rgba(2, 6, 23, 0.75);
   padding: 0.5rem;
   border-radius: 12px;
   backdrop-filter: blur(8px);
