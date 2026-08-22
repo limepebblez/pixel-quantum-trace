@@ -3,26 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>2x2, 3x3 & 4x4 Sandbox - Pixel Quantum Trace</title>
+  <title>Pixel Quantum Trace - Journey Map</title>
   <link rel="stylesheet" href="test.css">
 </head>
 <body>
 
-  <div class="hud">
-    <h1>Pixel Quantum Trace</h1>
-    <div id="stage-info">Level 1</div>
+  <!-- JOURNEY MAP VIEW -->
+  <div id="map-screen" class="screen">
+    <div class="hud">
+      <h1>Pixel Quantum Trace</h1>
+      <div id="total-stars">Total Stars: ⭐ 0</div>
+    </div>
+
+    <div class="map-container">
+      <div id="map-nodes" class="map-nodes"></div>
+    </div>
   </div>
 
-  <div class="game-layout">
-    <canvas id="game" width="240" height="240"></canvas>
-    <button id="fire-btn">Shoot Laser ⚡</button>
-  </div>
+  <!-- PUZZLE GRID VIEW -->
+  <div id="game-screen" class="screen" style="display: none;">
+    <div class="hud">
+      <button id="map-back-btn" class="nav-btn">⬅ Map</button>
+      <h1 id="level-title">Level 1</h1>
+      <div id="attempts-left">Energy Shots: ⚡⚡⚡</div>
+    </div>
 
-  <div id="status">Plan your mirrors and click Shoot Laser</div>
+    <div class="game-layout">
+      <canvas id="game" width="240" height="240"></canvas>
+      <button id="fire-btn">Shoot Laser ⚡</button>
+    </div>
 
-  <div class="bottom-btn-group">
-    <button id="restart-btn">Restart</button>
-    <button id="next-btn" disabled>Level 2 ➔</button>
+    <div id="status">Plan your mirrors and click Shoot Laser</div>
+
+    <div class="bottom-btn-group">
+      <button id="restart-btn">Restart</button>
+      <button id="next-btn" disabled>Next Level ➔</button>
+    </div>
   </div>
 
   <script src="test.js"></script>

@@ -1,21 +1,24 @@
+const mapScreen = document.getElementById('map-screen');
+const gameScreen = document.getElementById('game-screen');
+const mapNodesEl = document.getElementById('map-nodes');
+const totalStarsEl = document.getElementById('total-stars');
+
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 const statusEl = document.getElementById('status');
-const stageInfoEl = document.getElementById('stage-info');
+const levelTitleEl = document.getElementById('level-title');
+const attemptsLeftEl = document.getElementById('attempts-left');
 const fireBtn = document.getElementById('fire-btn');
 const restartBtn = document.getElementById('restart-btn');
 const nextBtn = document.getElementById('next-btn');
+const mapBackBtn = document.getElementById('map-back-btn');
 
 let audioCtx = null;
 let humNodes = null;
 
 function getAudioContext() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
 
@@ -24,10 +27,9 @@ function playRotateSound() {
   const now = ac.currentTime;
   const duration = 0.28;
 
-  const bufferSize = ac.sampleRate * duration;
-  const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
+  const buffer = ac.createBuffer(1, ac.sampleRate * duration, ac.sampleRate);
   const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+  for (let i = 0; i < buffer.length; i++) data[i] = Math.random() * 2 - 1;
 
   const noise = ac.createBufferSource();
   noise.buffer = buffer;
@@ -44,39 +46,20 @@ function playRotateSound() {
   noiseGain.gain.exponentialRampToValueAtTime(0.3, now + duration * 0.35);
   noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
-  noise.connect(filter);
-  filter.connect(noiseGain);
-  noiseGain.connect(ac.destination);
+  noise.connect(filter); filter.connect(noiseGain); noiseGain.connect(ac.destination);
 
   const sciFiOsc = ac.createOscillator();
   const sciFiGain = ac.createGain();
   sciFiOsc.type = 'sine';
   sciFiOsc.frequency.setValueAtTime(1400, now);
   sciFiOsc.frequency.exponentialRampToValueAtTime(300, now + duration);
-
   sciFiGain.gain.setValueAtTime(0.001, now);
   sciFiGain.gain.exponentialRampToValueAtTime(0.12, now + duration * 0.25);
   sciFiGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+  sciFiOsc.connect(sciFiGain); sciFiGain.connect(ac.destination);
 
-  sciFiOsc.connect(sciFiGain);
-  sciFiGain.connect(ac.destination);
-
-  const subOsc = ac.createOscillator();
-  const subGain = ac.createGain();
-  subOsc.type = 'sine';
-  subOsc.frequency.setValueAtTime(80, now);
-  subOsc.frequency.exponentialRampToValueAtTime(220, now + duration * 0.35);
-  subOsc.frequency.exponentialRampToValueAtTime(50, now + duration);
-
-  subGain.gain.setValueAtTime(0.001, now);
-  subGain.gain.exponentialRampToValueAtTime(0.25, now + duration * 0.3);
-  subGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-  subOsc.connect(subGain);
-  subGain.connect(ac.destination);
-
-  noise.start(now); sciFiOsc.start(now); subOsc.start(now);
-  noise.stop(now + duration); sciFiOsc.stop(now + duration); subOsc.stop(now + duration);
+  noise.start(now); sciFiOsc.start(now);
+  noise.stop(now + duration); sciFiOsc.stop(now + duration);
 }
 
 function startLaserHumSound() {
@@ -96,87 +79,40 @@ function startLaserHumSound() {
   mainGain.gain.setValueAtTime(0.05, now);
   mainGain.gain.linearRampToValueAtTime(0.18, now + 0.1);
 
-  const lfo = ac.createOscillator();
-  lfo.type = 'sine';
-  lfo.frequency.setValueAtTime(6.5, now);
-
-  const lfoGain = ac.createGain();
-  lfoGain.gain.setValueAtTime(0.08, now);
-
-  lfo.connect(lfoGain);
-  lfoGain.connect(mainGain.gain);
-
-  osc.connect(filter);
-  filter.connect(mainGain);
-  mainGain.connect(ac.destination);
-
+  osc.connect(filter); filter.connect(mainGain); mainGain.connect(ac.destination);
   osc.start(now);
-  lfo.start(now);
-
-  humNodes = { osc, lfo, mainGain, ac };
+  humNodes = { osc, mainGain, ac };
 }
 
 function stopLaserHumSound() {
   if (!humNodes) return;
-  const { osc, lfo, mainGain, ac } = humNodes;
-  const now = ac.currentTime;
-  mainGain.gain.linearRampToValueAtTime(0.001, now + 0.08);
-  setTimeout(() => {
-    try { osc.stop(); lfo.stop(); } catch(e){}
-  }, 100);
+  const { osc, mainGain, ac } = humNodes;
+  mainGain.gain.linearRampToValueAtTime(0.001, ac.currentTime + 0.08);
+  setTimeout(() => { try { osc.stop(); } catch(e){} }, 100);
   humNodes = null;
 }
 
 function playVictoryFanfare() {
   const ac = getAudioContext();
   const now = ac.currentTime;
-
   const notes = [
-    { freq: 523.25, time: 0.00, duration: 0.12, type: 'triangle' }, // C5
-    { freq: 659.25, time: 0.10, duration: 0.12, type: 'triangle' }, // E5
-    { freq: 783.99, time: 0.20, duration: 0.12, type: 'triangle' }, // G5
-    { freq: 1046.50, time: 0.30, duration: 0.15, type: 'sine' },     // C6
-    { freq: 1318.51, time: 0.45, duration: 0.60, type: 'sine' }      // E6
+    { freq: 523.25, time: 0.00, duration: 0.12 },
+    { freq: 659.25, time: 0.10, duration: 0.12 },
+    { freq: 783.99, time: 0.20, duration: 0.12 },
+    { freq: 1046.50, time: 0.30, duration: 0.15 },
+    { freq: 1318.51, time: 0.45, duration: 0.60 }
   ];
 
   notes.forEach(n => {
     const osc = ac.createOscillator();
     const gain = ac.createGain();
     const noteTime = now + n.time;
-
-    osc.type = n.type;
     osc.frequency.setValueAtTime(n.freq, noteTime);
-
     gain.gain.setValueAtTime(0.001, noteTime);
-    gain.gain.exponentialRampToValueAtTime(0.25, noteTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.2, noteTime + 0.02);
     gain.gain.exponentialRampToValueAtTime(0.001, noteTime + n.duration);
-
-    osc.connect(gain);
-    gain.connect(ac.destination);
-
-    osc.start(noteTime);
-    osc.stop(noteTime + n.duration);
-  });
-
-  const chord = [523.25, 783.99, 1046.50];
-  const chordTime = now + 0.45;
-
-  chord.forEach(freq => {
-    const osc = ac.createOscillator();
-    const gain = ac.createGain();
-
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, chordTime);
-
-    gain.gain.setValueAtTime(0.001, chordTime);
-    gain.gain.exponentialRampToValueAtTime(0.12, chordTime + 0.03);
-    gain.gain.exponentialRampToValueAtTime(0.001, chordTime + 0.65);
-
-    osc.connect(gain);
-    gain.connect(ac.destination);
-
-    osc.start(chordTime);
-    osc.stop(chordTime + 0.65);
+    osc.connect(gain); gain.connect(ac.destination);
+    osc.start(noteTime); osc.stop(noteTime + n.duration);
   });
 }
 
@@ -184,44 +120,15 @@ function playMishitSound() {
   const ac = getAudioContext();
   const now = ac.currentTime;
   const duration = 0.35;
-
-  const bufferSize = ac.sampleRate * duration;
-  const buffer = ac.createBuffer(1, bufferSize, ac.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-  const noise = ac.createBufferSource();
-  noise.buffer = buffer;
-
-  const filter = ac.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(2400, now);
-  filter.frequency.exponentialRampToValueAtTime(120, now + duration);
-
-  const noiseGain = ac.createGain();
-  noiseGain.gain.setValueAtTime(0.3, now);
-  noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-  noise.connect(filter);
-  filter.connect(noiseGain);
-  noiseGain.connect(ac.destination);
-
   const osc = ac.createOscillator();
   const oscGain = ac.createGain();
   osc.type = 'sawtooth';
   osc.frequency.setValueAtTime(320, now);
   osc.frequency.exponentialRampToValueAtTime(40, now + duration);
-
   oscGain.gain.setValueAtTime(0.2, now);
   oscGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-  osc.connect(oscGain);
-  oscGain.connect(ac.destination);
-
-  noise.start(now);
-  osc.start(now);
-  noise.stop(now + duration);
-  osc.stop(now + duration);
+  osc.connect(oscGain); oscGain.connect(ac.destination);
+  osc.start(now); osc.stop(now + duration);
 }
 
 const stages = [
@@ -242,6 +149,11 @@ const stages = [
   { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
 ];
 
+let playerProgress = {
+  unlockedLevel: 0,
+  levelStars: Array(stages.length).fill(0)
+};
+
 let currentStageIdx = 0;
 let activeConfig = null;
 let grid = [];
@@ -250,6 +162,7 @@ let targetAngles = [];
 let COLS, ROWS, TILE_SIZE, source, target;
 
 let attemptsUsed = 0;
+const MAX_ATTEMPTS = 3;
 let isStageWon = false;
 let isStageFailed = false;
 
@@ -261,6 +174,58 @@ let targetHitOnCurrentShot = false;
 
 let animFrameId = null;
 let lastTimestamp = 0;
+
+function updateAttemptsUI() {
+  const remaining = MAX_ATTEMPTS - attemptsUsed;
+  attemptsLeftEl.textContent = `Energy Shots: ${'⚡'.repeat(remaining)}${'❌'.repeat(attemptsUsed)}`;
+}
+
+function renderMap() {
+  mapNodesEl.innerHTML = '';
+  let sumStars = playerProgress.levelStars.reduce((a, b) => a + b, 0);
+  totalStarsEl.textContent = `Total Stars: ⭐ ${sumStars}`;
+
+  stages.forEach((stg, idx) => {
+    const isUnlocked = idx <= playerProgress.unlockedLevel;
+    const isCompleted = playerProgress.levelStars[idx] > 0;
+    const isCurrent = idx === playerProgress.unlockedLevel;
+
+    const row = document.createElement('div');
+    row.className = 'map-node-row';
+
+    const node = document.createElement('div');
+    node.className = `map-node ${isUnlocked ? 'unlocked' : ''} ${isCompleted ? 'completed' : ''} ${isCurrent ? 'active-current' : ''}`;
+    node.textContent = isUnlocked ? (idx + 1) : '🔒';
+
+    if (isCompleted) {
+      const starsDisplay = document.createElement('div');
+      starsDisplay.className = 'node-stars';
+      starsDisplay.textContent = '⭐'.repeat(playerProgress.levelStars[idx]);
+      node.appendChild(starsDisplay);
+    }
+
+    if (isUnlocked) {
+      node.addEventListener('click', () => startLevel(idx));
+    }
+
+    row.appendChild(node);
+    mapNodesEl.appendChild(row);
+  });
+}
+
+function showMapScreen() {
+  if (animFrameId) cancelAnimationFrame(animFrameId);
+  stopLaserHumSound();
+  gameScreen.style.display = 'none';
+  mapScreen.style.display = 'flex';
+  renderMap();
+}
+
+function startLevel(idx) {
+  mapScreen.style.display = 'none';
+  gameScreen.style.display = 'flex';
+  loadStage(idx);
+}
 
 function getAngleForTile(tile) {
   return tile === 1 ? -Math.PI / 4 : Math.PI / 4;
@@ -302,10 +267,11 @@ function loadStage(idx) {
   isLaserAnimating = false;
   stopLaserHumSound();
 
-  stageInfoEl.textContent = `Level ${currentStageIdx + 1}`;
+  levelTitleEl.textContent = `Level ${currentStageIdx + 1}`;
+  updateAttemptsUI();
 
   if (currentStageIdx < stages.length - 1) {
-    nextBtn.textContent = `Level ${currentStageIdx + 2} ➔`;
+    nextBtn.textContent = `Next Level ➔`;
   } else {
     nextBtn.textContent = `All Levels Done ➔`;
   }
@@ -409,6 +375,8 @@ function fireLaser() {
   if (isStageWon || isStageFailed || isLaserAnimating) return;
 
   attemptsUsed++;
+  updateAttemptsUI();
+
   const res = computeLaserTrajectory();
   fullPathPoints = res.points;
   totalPathLength = res.totalDist;
@@ -437,14 +405,21 @@ function updateLaserAnimation(dt) {
     if (targetHitOnCurrentShot) {
       isStageWon = true;
       nextBtn.disabled = false;
-      statusEl.textContent = 'SIGNAL CONNECTED!';
+
+      // Calculate Stars (3 Stars = 1st try, 2 Stars = 2nd try, 1 Star = 3rd try)
+      const earnedStars = 4 - attemptsUsed;
+      playerProgress.levelStars[currentStageIdx] = Math.max(playerProgress.levelStars[currentStageIdx], earnedStars);
+      playerProgress.unlockedLevel = Math.max(playerProgress.unlockedLevel, currentStageIdx + 1);
+
+      statusEl.textContent = `SIGNAL CONNECTED! (${'⭐'.repeat(earnedStars)})`;
       statusEl.className = 'win';
       playVictoryFanfare();
     } else {
       playMishitSound();
-      if (attemptsUsed === 1) {
+      if (attemptsUsed < MAX_ATTEMPTS) {
         fireBtn.disabled = false;
-        statusEl.textContent = 'MISSED! 1 ATTEMPT LEFT!';
+        const remaining = MAX_ATTEMPTS - attemptsUsed;
+        statusEl.textContent = `MISSED! ${remaining} ATTEMPT${remaining > 1 ? 'S' : ''} LEFT!`;
         statusEl.className = 'warn';
       } else {
         isStageFailed = true;
@@ -479,7 +454,6 @@ function updateAngles() {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  // Grid Lines
   ctx.strokeStyle = '#1e293b';
   ctx.lineWidth = 1;
   for (let r = 0; r <= ROWS; r++) {
@@ -489,7 +463,6 @@ function draw() {
     ctx.beginPath(); ctx.moveTo(c * TILE_SIZE, 0); ctx.lineTo(c * TILE_SIZE, ROWS * TILE_SIZE); ctx.stroke();
   }
 
-  // Draw Laser Trajectory
   if (animDistance > 0 && fullPathPoints.length > 1) {
     let remainingDist = animDistance;
     let visiblePath = [fullPathPoints[0]];
@@ -506,10 +479,7 @@ function draw() {
         remainingDist -= segLen;
       } else {
         let ratio = remainingDist / segLen;
-        visiblePath.push({
-          x: p1.x + segDx * ratio,
-          y: p1.y + segDy * ratio
-        });
+        visiblePath.push({ x: p1.x + segDx * ratio, y: p1.y + segDy * ratio });
         break;
       }
     }
@@ -527,7 +497,6 @@ function draw() {
     ctx.shadowBlur = 0;
   }
 
-  // Source Emitter Node with Neon Glow
   let ex = (source.x + 0.5) * TILE_SIZE;
   let ey = (source.y + 0.5) * TILE_SIZE;
   let radius = TILE_SIZE * 0.22;
@@ -541,7 +510,6 @@ function draw() {
   ctx.fill();
   ctx.restore();
 
-  // Directional Arrow
   let arrowLen = TILE_SIZE * 0.32;
   let tipX = ex + source.dx * arrowLen;
   let tipY = ey + source.dy * arrowLen;
@@ -564,7 +532,6 @@ function draw() {
   ctx.closePath();
   ctx.fill();
 
-  // Target Node
   ctx.fillStyle = isStageWon ? '#22c55e' : '#475569';
   ctx.beginPath();
   ctx.arc((target.x + 0.5) * TILE_SIZE, (target.y + 0.5) * TILE_SIZE, TILE_SIZE * 0.22, 0, Math.PI * 2);
@@ -575,7 +542,6 @@ function draw() {
     ctx.stroke();
   }
 
-  // Smooth Rotating Mirrors
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       if (grid[r][c] === 0) continue;
@@ -633,13 +599,11 @@ canvas.addEventListener('click', (e) => {
   const x = Math.floor(((e.clientX - rect.left) * scaleX) / TILE_SIZE);
   const y = Math.floor(((e.clientY - rect.top) * scaleY) / TILE_SIZE);
 
-  // 1. Fire laser if player taps the Source Emitter Node
   if (x === source.x && y === source.y) {
     fireLaser();
     return;
   }
 
-  // 2. Rotate mirror if player taps a Mirror Tile
   if (x >= 0 && x < COLS && y >= 0 && y < ROWS && grid[y][x] !== 0) {
     playRotateSound();
 
@@ -654,10 +618,12 @@ canvas.addEventListener('click', (e) => {
 });
 
 fireBtn.addEventListener('click', fireLaser);
-restartBtn.addEventListener('click', () => loadStage(0));
+restartBtn.addEventListener('click', () => loadStage(currentStageIdx));
 nextBtn.addEventListener('click', () => {
   if (currentStageIdx < stages.length - 1) loadStage(currentStageIdx + 1);
-  else alert("All levels complete!");
+  else showMapScreen();
 });
+mapBackBtn.addEventListener('click', showMapScreen);
 
-loadStage(0);
+// Initial Load
+showMapScreen();
