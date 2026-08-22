@@ -131,31 +131,62 @@ function playMishitSound() {
   osc.start(now); osc.stop(now + duration);
 }
 
-const stages = [
-  // 2x2 Stages
-  { cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 1, y: 1 }, grid: [[0, 2], [0, 0]] },
-  { cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 0, dy: 1 }, target: { x: 1, y: 1 }, grid: [[0, 0], [2, 0]] },
-  // 3x3 Stages
-  { cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 1], [0, 0, 0], [0, 0, 0]] },
-  { cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 0, 0], [0, 1, 0]] },
-  { cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 2, 1], [0, 0, 0]] },
-  { cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 2], [1, 0, 1], [2, 0, 0]] },
-  // 4x4 Stages
-  { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] },
-  { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]] },
-  { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [0, 0, 0, 0], [0, 1, 0, 2], [0, 0, 0, 0]] },
-  { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [1, 2, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0]] },
-  { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [1, 0, 2, 0], [1, 0, 0, 2], [0, 0, 0, 0]] },
-  { cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
+// MAIN LEVELS & SUB-LEVELS STRUCTURE
+const mainLevels = [
+  {
+    id: 1,
+    name: "Level 1",
+    sublevels: [
+      { name: "1.1", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 1, y: 1 }, grid: [[0, 2], [0, 0]] },
+      { name: "1.2", cols: 2, rows: 2, tileSize: 120, source: { x: 0, y: 0, dx: 0, dy: 1 }, target: { x: 1, y: 1 }, grid: [[0, 0], [2, 0]] }
+    ]
+  },
+  {
+    id: 2,
+    name: "Level 2",
+    sublevels: [
+      { name: "2.1", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 1], [0, 0, 0], [0, 0, 0]] },
+      { name: "2.2", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 0, 0], [0, 1, 0]] },
+      { name: "2.3", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 2, 0], [0, 2, 1], [0, 0, 0]] },
+      { name: "2.4", cols: 3, rows: 3, tileSize: 80, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 2, y: 2 }, grid: [[0, 0, 2], [1, 0, 1], [2, 0, 0]] }
+    ]
+  },
+  {
+    id: 3,
+    name: "Level 3",
+    sublevels: [
+      { name: "3.1", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] },
+      { name: "3.2", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]] },
+      { name: "3.3", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [0, 0, 0, 0], [0, 1, 0, 2], [0, 0, 0, 0]] },
+      { name: "3.4", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [1, 2, 0, 0], [0, 0, 0, 0], [1, 0, 0, 0]] }
+    ]
+  },
+  {
+    id: 4,
+    name: "Level 4",
+    sublevels: [
+      { name: "4.1", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 2, 0], [1, 0, 2, 0], [1, 0, 0, 2], [0, 0, 0, 0]] },
+      { name: "4.2", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 2], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
+    ]
+  },
+  {
+    id: 5,
+    name: "Level 5",
+    sublevels: [
+      { name: "5.1", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 1, dy: 0 }, target: { x: 3, y: 3 }, grid: [[0, 2, 0, 0], [0, 1, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] },
+      { name: "5.2", cols: 4, rows: 4, tileSize: 60, source: { x: 0, y: 0, dx: 0, dy: 1 }, target: { x: 3, y: 3 }, grid: [[0, 0, 0, 0], [1, 2, 0, 2], [0, 1, 2, 0], [0, 0, 1, 0]] }
+    ]
+  }
 ];
 
 let playerProgress = {
   unlockedLevel: 0,
-  levelStars: Array(stages.length).fill(0)
+  levelStars: Array(mainLevels.length).fill(0)
 };
 
-let currentStageIdx = 0;
-let activeConfig = null;
+let currentMainIdx = 0;
+let currentSubIdx = 0;
+let activeSubConfig = null;
 let grid = [];
 let renderAngles = [];
 let targetAngles = [];
@@ -163,6 +194,7 @@ let COLS, ROWS, TILE_SIZE, source, target;
 
 let attemptsUsed = 0;
 const MAX_ATTEMPTS = 3;
+let currentLevelMinStars = 3;
 let isStageWon = false;
 let isStageFailed = false;
 
@@ -174,6 +206,7 @@ let targetHitOnCurrentShot = false;
 
 let animFrameId = null;
 let lastTimestamp = 0;
+let justCompletedLevelIdx = null;
 
 function updateAttemptsUI() {
   const remaining = MAX_ATTEMPTS - attemptsUsed;
@@ -185,7 +218,7 @@ function renderMap() {
   let sumStars = playerProgress.levelStars.reduce((a, b) => a + b, 0);
   totalStarsEl.textContent = `Total Stars: ⭐ ${sumStars}`;
 
-  stages.forEach((stg, idx) => {
+  mainLevels.forEach((lvl, idx) => {
     const isUnlocked = idx <= playerProgress.unlockedLevel;
     const isCompleted = playerProgress.levelStars[idx] > 0;
     const isCurrent = idx === playerProgress.unlockedLevel;
@@ -194,8 +227,9 @@ function renderMap() {
     row.className = 'map-node-row';
 
     const node = document.createElement('div');
+    node.id = `map-node-${idx}`;
     node.className = `map-node ${isUnlocked ? 'unlocked' : ''} ${isCompleted ? 'completed' : ''} ${isCurrent ? 'active-current' : ''}`;
-    node.textContent = isUnlocked ? (idx + 1) : '🔒';
+    node.textContent = isUnlocked ? lvl.id : '🔒';
 
     if (isCompleted) {
       const starsDisplay = document.createElement('div');
@@ -205,12 +239,25 @@ function renderMap() {
     }
 
     if (isUnlocked) {
-      node.addEventListener('click', () => startLevel(idx));
+      node.addEventListener('click', () => startMainLevel(idx));
     }
 
     row.appendChild(node);
     mapNodesEl.appendChild(row);
   });
+
+  if (justCompletedLevelIdx !== null) {
+    const prevNode = document.getElementById(`map-node-${justCompletedLevelIdx}`);
+    const nextNode = document.getElementById(`map-node-${justCompletedLevelIdx + 1}`);
+
+    if (prevNode) prevNode.classList.add('anim-complete');
+
+    setTimeout(() => {
+      if (nextNode) nextNode.classList.add('anim-unlock');
+    }, 600);
+
+    justCompletedLevelIdx = null;
+  }
 }
 
 function showMapScreen() {
@@ -221,10 +268,13 @@ function showMapScreen() {
   renderMap();
 }
 
-function startLevel(idx) {
+function startMainLevel(mainIdx) {
+  currentMainIdx = mainIdx;
+  currentSubIdx = 0;
+  currentLevelMinStars = 3;
   mapScreen.style.display = 'none';
   gameScreen.style.display = 'flex';
-  loadStage(idx);
+  loadSubLevel(currentMainIdx, currentSubIdx);
 }
 
 function getAngleForTile(tile) {
@@ -246,15 +296,19 @@ function initAngles() {
   }
 }
 
-function loadStage(idx) {
-  currentStageIdx = idx;
-  activeConfig = stages[currentStageIdx];
-  COLS = activeConfig.cols;
-  ROWS = activeConfig.rows;
-  TILE_SIZE = activeConfig.tileSize;
-  source = { ...activeConfig.source };
-  target = { ...activeConfig.target };
-  grid = activeConfig.grid.map(row => [...row]);
+function loadSubLevel(mainIdx, subIdx) {
+  currentMainIdx = mainIdx;
+  currentSubIdx = subIdx;
+
+  const currentLevelObj = mainLevels[currentMainIdx];
+  activeSubConfig = currentLevelObj.sublevels[currentSubIdx];
+
+  COLS = activeSubConfig.cols;
+  ROWS = activeSubConfig.rows;
+  TILE_SIZE = activeSubConfig.tileSize;
+  source = { ...activeSubConfig.source };
+  target = { ...activeSubConfig.target };
+  grid = activeSubConfig.grid.map(row => [...row]);
 
   attemptsUsed = 0;
   isStageWon = false;
@@ -267,14 +321,10 @@ function loadStage(idx) {
   isLaserAnimating = false;
   stopLaserHumSound();
 
-  levelTitleEl.textContent = `Level ${currentStageIdx + 1}`;
+  levelTitleEl.textContent = `Level ${activeSubConfig.name}`;
   updateAttemptsUI();
 
-  if (currentStageIdx < stages.length - 1) {
-    nextBtn.textContent = `Next Level ➔`;
-  } else {
-    nextBtn.textContent = `All Levels Done ➔`;
-  }
+  nextBtn.textContent = (currentSubIdx < currentLevelObj.sublevels.length - 1) ? `Next Stage ➔` : `Finish Level ➔`;
 
   fireBtn.disabled = false;
   nextBtn.disabled = true;
@@ -406,12 +456,10 @@ function updateLaserAnimation(dt) {
       isStageWon = true;
       nextBtn.disabled = false;
 
-      // Calculate Stars (3 Stars = 1st try, 2 Stars = 2nd try, 1 Star = 3rd try)
-      const earnedStars = 4 - attemptsUsed;
-      playerProgress.levelStars[currentStageIdx] = Math.max(playerProgress.levelStars[currentStageIdx], earnedStars);
-      playerProgress.unlockedLevel = Math.max(playerProgress.unlockedLevel, currentStageIdx + 1);
+      const subEarnedStars = 4 - attemptsUsed;
+      currentLevelMinStars = Math.min(currentLevelMinStars, subEarnedStars);
 
-      statusEl.textContent = `SIGNAL CONNECTED! (${'⭐'.repeat(earnedStars)})`;
+      statusEl.textContent = `SIGNAL CONNECTED! (${'⭐'.repeat(subEarnedStars)})`;
       statusEl.className = 'win';
       playVictoryFanfare();
     } else {
@@ -497,14 +545,17 @@ function draw() {
     ctx.shadowBlur = 0;
   }
 
+  // ENHANCEMENT: Source Emitter Node with Breathing Glow
   let ex = (source.x + 0.5) * TILE_SIZE;
   let ey = (source.y + 0.5) * TILE_SIZE;
   let radius = TILE_SIZE * 0.22;
 
+  let glowBlur = 10 + Math.sin(performance.now() * 0.005) * 6;
+
   ctx.save();
   ctx.fillStyle = '#38bdf8';
   ctx.shadowColor = '#38bdf8';
-  ctx.shadowBlur = 12;
+  ctx.shadowBlur = glowBlur;
   ctx.beginPath();
   ctx.arc(ex, ey, radius, 0, Math.PI * 2);
   ctx.fill();
@@ -577,12 +628,12 @@ function startAnimationLoop() {
     lastTimestamp = now;
     if (dt > 0.1) dt = 0.1;
 
-    let isAnglesAnimating = updateAngles();
-    let isLaserStillAnimating = updateLaserAnimation(dt);
+    updateAngles();
+    updateLaserAnimation(dt);
 
     draw();
 
-    if (isAnglesAnimating || isLaserStillAnimating) {
+    if (gameScreen.style.display !== 'none') {
       animFrameId = requestAnimationFrame(loop);
     }
   }
@@ -618,12 +669,20 @@ canvas.addEventListener('click', (e) => {
 });
 
 fireBtn.addEventListener('click', fireLaser);
-restartBtn.addEventListener('click', () => loadStage(currentStageIdx));
+restartBtn.addEventListener('click', () => loadSubLevel(currentMainIdx, currentSubIdx));
 nextBtn.addEventListener('click', () => {
-  if (currentStageIdx < stages.length - 1) loadStage(currentStageIdx + 1);
-  else showMapScreen();
+  const currentSublevels = mainLevels[currentMainIdx].sublevels;
+
+  if (currentSubIdx < currentSublevels.length - 1) {
+    loadSubLevel(currentMainIdx, currentSubIdx + 1);
+  } else {
+    playerProgress.levelStars[currentMainIdx] = Math.max(playerProgress.levelStars[currentMainIdx], currentLevelMinStars);
+    playerProgress.unlockedLevel = Math.max(playerProgress.unlockedLevel, currentMainIdx + 1);
+    justCompletedLevelIdx = currentMainIdx;
+
+    showMapScreen();
+  }
 });
 mapBackBtn.addEventListener('click', showMapScreen);
 
-// Initial Load
 showMapScreen();
